@@ -18,6 +18,7 @@ export function MailboxSelector() {
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
 	const [isAdmin, setIsAdmin] = useState(false);
+	const [hasAvatar, setHasAvatar] = useState(false);
 	const ref = useRef<HTMLDivElement>(null);
 	const { counts } = useMessageCounts(null, open);
 
@@ -34,8 +35,9 @@ export function MailboxSelector() {
 		authFetch("/api/auth/me", { redirectOnUnauthorized: false })
 			.then((response) => response.ok ? response.json() : null)
 			.then((data) => {
-				const authData = data as { user?: { role?: string } } | null;
+				const authData = data as { user?: { role?: string; hasAvatar?: boolean } } | null;
 				setIsAdmin(authData?.user?.role === "admin");
+				setHasAvatar(!!authData?.user?.hasAvatar);
 			})
 			.catch(() => setIsAdmin(false));
 	}, []);
@@ -82,9 +84,19 @@ export function MailboxSelector() {
 						<p className="truncate text-sm font-medium text-neutral-800">{selectedName}</p>
 						<p className="truncate text-[11px] text-neutral-500">{selectedEmail}</p>
 					</div>
-					<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
-						<Mail className="h-4 w-4" />
-					</div>
+					{hasAvatar ? (
+						// eslint-disable-next-line @next/next/no-img-element
+						<img
+							src="/api/profile/avatar"
+							alt="Profile"
+							className="h-8 w-8 shrink-0 rounded-full object-cover"
+							onError={() => setHasAvatar(false)}
+						/>
+					) : (
+						<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
+							<Mail className="h-4 w-4" />
+						</div>
+					)}
 				</div>
 				{/* <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" /> */}
 			</button>

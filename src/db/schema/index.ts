@@ -7,6 +7,7 @@ export const users = sqliteTable("users", {
 	resetEmail: text("reset_email"),
 	passwordHash: text("password_hash").notNull(),
 	name: text("name").notNull(),
+	avatarKey: text("avatar_key"),
 	role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
 	disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
 	createdByUserId: text("created_by_user_id").references((): AnySQLiteColumn => users.id, { onDelete: "set null" }),

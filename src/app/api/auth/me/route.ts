@@ -18,6 +18,7 @@ export async function GET(request: Request) {
 			name: user.name,
 			resetEmail: user.resetEmail,
 			role: user.role,
+			hasAvatar: !!user.avatarKey,
 		},
 		hasMailboxes,
 	});
