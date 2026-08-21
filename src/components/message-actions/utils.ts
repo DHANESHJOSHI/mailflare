@@ -1,7 +1,8 @@
 import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import { authFetch } from "@/lib/auth/client";
 import { getEmailAddress } from "@/lib/email/address";
-import type { TrashSenderRuleInput } from "./types";
+import { getLatestEmailContent } from "@/lib/email/reply-content-utils";
+import type { ReplyDraftInput, TrashSenderRuleInput } from "./types";
 
 export function getMessageBackHref(direction: "inbound" | "outbound", status: string) {
 	if (status === "trash") return "/trash";
@@ -61,4 +62,47 @@ export function getMessageActionRedirect(action: BulkMessageAction, direction: "
 	if (action === "archive") return "/archived";
 	if (action === "inbox") return "/inbox";
 	return null;
+}
+
+export function buildReplySubject(subject: string | null | undefined) {
+	const trimmed = (subject ?? "").trim();
+	if (!trimmed) return "Re:";
+	return /^re:/i.test(trimmed) ? trimmed : `Re: ${trimmed}`;
+}
+
+export function buildReplyQuote(senderAddress: string, bodyText: string | null | undefined) {
+	const latest = getLatestEmailContent(bodyText).trim();
+	if (!latest) return "";
+	const quoted = latest
+		.split("\n")
+		.map((line) => `> ${line}`)
+		.join("\n");
+	return `\n\n${getEmailAddress(senderAddress)} wrote:\n${quoted}\n`;
+}
+
+export async function createReplyDraft({
+	mailboxId,
+	senderAddress,
+	ownAddress,
+	subject,
+	bodyText,
+}: ReplyDraftInput) {
+	const to = getEmailAddress(senderAddress).trim();
+	if (!to) throw new Error("Sender address is required");
+
+	const response = await authFetch("/api/drafts", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			mailboxId,
+			// The API rejects the draft unless `from` matches the mailbox address.
+			from: getEmailAddress(ownAddress ?? ""),
+			to,
+			subject: buildReplySubject(subject),
+			text: buildReplyQuote(senderAddress, bodyText),
+		}),
+	});
+	const data = (await response.json()) as { draft?: { id: string }; error?: string };
+	if (!response.ok || !data.draft) throw new Error(data.error ?? "Unable to create reply draft");
+	return data.draft.id;
 }

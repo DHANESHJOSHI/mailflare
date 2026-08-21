@@ -3,12 +3,14 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, Mail, MailOpen, MoreVertical, Reply, ShieldAlert, Trash2 } from "lucide-react";
+import { useCompose } from "@/components/compose/compose-context";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import type { MessageActionsProps } from "./types";
 import {
 	confirmTrashWithoutUnsubscribe,
+	createReplyDraft,
 	createTrashSenderRule,
 	getMessageActionRedirect,
 	openUnsubscribeUrl,
@@ -23,9 +25,15 @@ export function MessageActions({
 	status,
 	read,
 	unsubscribeUrl,
+	subject,
+	bodyText,
+	ownAddress,
 }: MessageActionsProps) {
 	const router = useRouter();
-	const [pendingAction, setPendingAction] = useState<BulkMessageAction | "unsubscribe" | null>(null);
+	const { openDraftComposer } = useCompose();
+	const [pendingAction, setPendingAction] = useState<
+		BulkMessageAction | "unsubscribe" | "reply" | null
+	>(null);
 	const [error, setError] = useState<string | null>(null);
 	const [moreOpen, setMoreOpen] = useState(false);
 
@@ -70,6 +78,25 @@ export function MessageActions({
 		}
 	}
 
+	async function handleReply() {
+		setPendingAction("reply");
+		setError(null);
+		try {
+			const draftId = await createReplyDraft({
+				mailboxId,
+				senderAddress,
+				ownAddress,
+				subject,
+				bodyText,
+			});
+			openDraftComposer(draftId);
+		} catch (replyError) {
+			setError(replyError instanceof Error ? replyError.message : "Could not start reply");
+		} finally {
+			setPendingAction(null);
+		}
+	}
+
 	const disabled = pendingAction !== null;
 	const markAction: BulkMessageAction = read ? "unread" : "read";
 
@@ -78,7 +105,14 @@ export function MessageActions({
 			{error && <span className="text-xs text-red-600">{error}</span>}
 			<div className="flex items-center gap-2">
 				<Tooltip label="Reply">
-					<Button type="button" variant="ghost" size="sm" aria-label="Reply">
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						aria-label="Reply"
+						disabled={disabled}
+						onClick={handleReply}
+					>
 						<Reply className="h-5 w-5" />
 					</Button>
 				</Tooltip>

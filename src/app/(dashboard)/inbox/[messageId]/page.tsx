@@ -100,6 +100,9 @@ export default function MessageDetailPage() {
           status={message.status}
           read={message.read}
           unsubscribeUrl={data.unsubscribeUrl}
+          subject={message.subject}
+          bodyText={body?.textBody}
+          ownAddress={ownAddress}
         />
       </div>
       <article className="px-6 py-4">
