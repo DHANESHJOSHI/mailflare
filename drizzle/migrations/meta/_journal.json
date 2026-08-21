@@ -71,6 +71,13 @@
       "when": 1781312400000,
       "tag": "0009_add_backups",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784285031058,
+      "tag": "0010_hard_squirrel_girl",
+      "breakpoints": true
     }
   ]
 }
