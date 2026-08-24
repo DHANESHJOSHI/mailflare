@@ -15,8 +15,8 @@ import { getCloudflareContext } from "@opennextjs/cloudflare";
 
 const GITHUB_API_URL = "https://api.github.com";
 const GITHUB_API_VERSION = "2026-03-10";
-const UPDATE_WORKFLOW = "update.yml";
-const UPDATE_SOURCE_REPOSITORY = "hieunc229/mailflare-team";
+const UPDATE_WORKFLOW = "deploy-update.yml";
+const UPDATE_SOURCE_REPOSITORY = "hieunc229/mailflare";
 
 export async function authorizeAdminRequest(request: Request) {
   const env = getEnv();
@@ -43,11 +43,17 @@ export async function authorizeAdminRequest(request: Request) {
 
 function getDispatchConfig(env: CloudflareEnv): UpdateDispatchConfig {
   const token = env.GITHUB_UPDATE_TOKEN?.trim();
-  const repository = `hieunc229/mailflare-team`;
+  const repository = env.GITHUB_UPDATE_REPO?.trim();
   const ref = env.GITHUB_UPDATE_REF?.trim();
 
   if (!token) {
     throw new Error("GITHUB_UPDATE_TOKEN must be configured");
+  }
+
+  if (!repository) {
+    throw new Error(
+      "GITHUB_UPDATE_REPO must be configured as owner/repository",
+    );
   }
 
   return { token, repository, ref: ref || undefined };
@@ -177,25 +183,26 @@ export async function getUpdateStatus(
 export async function dispatchUpdateWorkflow() {
   const { env } = getCloudflareContext();
 
-  const ref = `main`;
-  const repository = env.GITHUB_UPDATE_REPO;
+  const config = getDispatchConfig(env);
+  const repository = config.repository;
+  const ref = await getDispatchRef(config);
 
-  const { data: wf } = await githubRequest<any>(
-    `/repos/${repository}/actions/workflows`,
-  );
-  const item = wf.workflows.find((item) => item.name === "Update Mailflare");
-
+  // Dispatch by workflow file name; GitHub accepts it in place of the numeric
+  // workflow id, so this does not depend on the workflow's display name.
   const { data, response } =
     await githubRequest<GitHubWorkflowDispatchResponse>(
-      `/repos/${repository}/actions/workflows/${item.id}/dispatches`,
+      `/repos/${repository}/actions/workflows/${UPDATE_WORKFLOW}/dispatches`,
       {
         method: "POST",
-        body: JSON.stringify({ ref: "main" }),
+        body: JSON.stringify({ ref }),
       },
     );
 
   if (!response.ok) {
-    throw new Error(data?.message ?? `GitHub returned HTTP ${response.status}`);
+    throw new Error(
+      data?.message ??
+        `GitHub returned HTTP ${response.status} dispatching ${UPDATE_WORKFLOW} in ${repository}`,
+    );
   }
 
   return {
