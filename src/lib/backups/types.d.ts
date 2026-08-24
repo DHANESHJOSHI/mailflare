@@ -7,8 +7,14 @@ export type BackupWorkflowParams = {
 
 export type D1ExportResult = {
 	at_bookmark?: string;
+	status?: string;
+	error?: string;
 	signed_url?: string;
 	filename?: string;
+	result?: {
+		signed_url?: string;
+		filename?: string;
+	};
 };
 
 export type D1ExportResponse = {
