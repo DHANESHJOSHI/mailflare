@@ -44,11 +44,14 @@ export class DatabaseBackupWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ba
 			let exportFilename = "";
 			for (let attempt = 1; attempt <= EXPORT_RETRIES; attempt += 1) {
 				const result = await step.do(`Poll D1 export ${attempt}`, async () =>
-					this.callExportApi(exportUrl, { current_bookmark: bookmark }),
+					this.callExportApi(exportUrl, { output_format: "polling", current_bookmark: bookmark }),
 				);
-				if (result.result?.signed_url) {
-					signedUrl = result.result.signed_url;
-					exportFilename = result.result.filename ?? "";
+				// The polling response nests the finished export one level deeper
+				// (result.result.result); fall back to the flat shape defensively.
+				const finished = result.result?.result ?? result.result;
+				if (finished?.signed_url) {
+					signedUrl = finished.signed_url;
+					exportFilename = finished.filename ?? "";
 					break;
 				}
 				if (attempt < EXPORT_RETRIES) await step.sleep(`Wait for D1 export ${attempt}`, "15 seconds");
