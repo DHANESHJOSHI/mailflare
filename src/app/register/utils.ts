@@ -1,9 +1,24 @@
 import { persistAuthSession } from "@/lib/auth/client";
-import type { DomainSetupResult, RegisterResult, SetupStatus } from "./types";
+import type {
+	DomainSetupResult,
+	RegisterResult,
+	SetupPreparationResult,
+	SetupStatus,
+} from "./types";
+
+export async function prepareSetup(): Promise<{ ok: boolean; data: SetupPreparationResult }> {
+	const res = await fetch("/api/setup/prepare", { method: "POST" });
+	return {
+		ok: res.ok,
+		data: (await res.json()) as SetupPreparationResult,
+	};
+}
 
 export async function getSetupStatus(): Promise<SetupStatus> {
 	const res = await fetch("/api/setup/status");
-	return (await res.json()) as SetupStatus;
+	const data = (await res.json()) as SetupStatus;
+	if (!res.ok) throw new Error(data.error ?? "Could not load setup status");
+	return data;
 }
 
 export async function submitPrimaryDomain(form: FormData): Promise<{ ok: boolean; data: DomainSetupResult }> {

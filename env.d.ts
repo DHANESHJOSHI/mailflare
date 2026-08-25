@@ -10,7 +10,7 @@ interface CloudflareEnv {
 	REALTIME: DurableObjectNamespace<
 		import("./src/lib/realtime/hub").RealtimeHub
 	>;
-	DATABASE_BACKUP_WORKFLOW: Workflow<import("./src/lib/backups/types").BackupWorkflowParams>;
+	DATABASE_BACKUP_WORKFLOW?: Workflow<import("./src/lib/backups/types").BackupWorkflowParams>;
 	LOGIN_RATE_LIMIT?: RateLimit;
 	CF_TOKEN?: string;
 	CF_API_KEY?: string;

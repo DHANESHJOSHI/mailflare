@@ -1,10 +1,5 @@
-import { AuthGuard } from "@/components/auth/auth-guard";
-import { OnboardingClient } from "./onboarding-client";
+import { redirect } from "next/navigation";
 
 export default function OnboardingPage() {
-	return (
-		<AuthGuard>
-			<OnboardingClient />
-		</AuthGuard>
-	);
+	redirect("/setup");
 }

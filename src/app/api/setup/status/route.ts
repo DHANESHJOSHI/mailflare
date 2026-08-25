@@ -5,15 +5,20 @@ import { getPrimaryDomain } from "@/lib/user";
 
 export async function GET() {
 	const env = getEnv();
-	const [adminAccountExists, domain] = await Promise.all([
-		hasAdminAccount(env),
-		getPrimaryDomain(env),
-	]);
-	return NextResponse.json({
-		hasAdminAccount: adminAccountExists,
-		hasPrimaryDomain: !!domain,
-		primaryDomain: domain ? { hostname: domain.hostname } : null,
-	}, {
-		headers: { "Cache-Control": "no-store" },
-	});
+	try {
+		const [adminAccountExists, domain] = await Promise.all([
+			hasAdminAccount(env),
+			getPrimaryDomain(env),
+		]);
+		return NextResponse.json({
+			hasAdminAccount: adminAccountExists,
+			hasPrimaryDomain: !!domain,
+			primaryDomain: domain ? { hostname: domain.hostname } : null,
+		}, {
+			headers: { "Cache-Control": "no-store" },
+		});
+	} catch (error) {
+		const message = error instanceof Error ? error.message : "Could not load setup status";
+		return NextResponse.json({ error: message }, { status: 500 });
+	}
 }

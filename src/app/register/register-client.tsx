@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowRight, MailPlus } from "lucide-react";
+import { ArrowRight, CheckCircle2, LoaderCircle, MailPlus, XCircle } from "lucide-react";
 import { useEffect, useState } from "react";
 import { AuthShell } from "@/components/auth/auth-shell";
 import { Button } from "@/components/ui/button";
@@ -11,9 +11,11 @@ import { Label } from "@/components/ui/label";
 import { TurnstileField } from "@/components/auth/turnstile";
 import {
   getSetupStatus,
+  prepareSetup,
   submitPrimaryDomain,
   submitRegistration,
 } from "./utils";
+import type { SetupRequirementCheck } from "./types";
 
 export function RegisterClient() {
   const router = useRouter();
@@ -23,23 +25,43 @@ export function RegisterClient() {
   );
   const [primaryDomain, setPrimaryDomain] = useState<string | null>(null);
   const [setupDomain, setSetupDomain] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [checks, setChecks] = useState<SetupRequirementCheck[]>([]);
+  const [databaseMigrated, setDatabaseMigrated] = useState(false);
+  const [preparationComplete, setPreparationComplete] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [turnstileReset, setTurnstileReset] = useState(0);
 
   useEffect(() => {
-    void getSetupStatus()
-      .then((data) => {
-        setHasAdminAccount(data.hasAdminAccount);
-        setHasPrimaryDomain(data.hasPrimaryDomain);
-        setPrimaryDomain(data.primaryDomain?.hostname ?? null);
-      })
-      .catch(() => {
-        setHasAdminAccount(true);
-        setHasPrimaryDomain(true);
-      });
+    void runPreparation();
   }, []);
+
+  async function runPreparation() {
+    setLoading(true);
+    setError(null);
+    setPreparationComplete(false);
+
+    try {
+      const preparation = await prepareSetup();
+      setChecks(preparation.data.checks ?? []);
+      setDatabaseMigrated(!!preparation.data.migrated);
+      if (!preparation.ok) {
+        setError(preparation.data.error ?? "Complete the missing configuration before continuing.");
+        return;
+      }
+
+      const data = await getSetupStatus();
+      setHasAdminAccount(data.hasAdminAccount);
+      setHasPrimaryDomain(data.hasPrimaryDomain);
+      setPrimaryDomain(data.primaryDomain?.hostname ?? null);
+      setPreparationComplete(true);
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Installation preparation failed");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   async function onDomainSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -57,7 +79,7 @@ export function RegisterClient() {
       return;
     }
     setSetupDomain(data.domain.hostname);
-    setStep(2);
+    setStep(3);
   }
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -86,7 +108,7 @@ export function RegisterClient() {
   }
 
   const accountDomain = setupDomain ?? primaryDomain;
-  const showDomainStep = hasPrimaryDomain === false && step === 1;
+  const showDomainStep = hasPrimaryDomain === false && step === 2;
 
   if (hasAdminAccount === true) {
     return (
@@ -122,31 +144,78 @@ export function RegisterClient() {
   return (
     <AuthShell
       icon={MailPlus}
-      title={showDomainStep ? "Add your domain" : "Create your mailbox"}
+      title={step === 1 ? "Prepare installation" : showDomainStep ? "Add your domain" : "Create your mailbox"}
       // description={
       // 	showDomainStep
       // 		? "Connect the primary Cloudflare zone first so routing records can be created before the first mailbox."
       // 		: `Choose a mailbox username on ${accountDomain ?? "the primary domain"} and add a recovery email.`
       // }
       steps={
-        hasAdminAccount === false && hasPrimaryDomain === false
-          ? [
-              { label: "Domain", active: step === 1 },
-              { label: "Account", active: step === 2 },
-            ]
-          : undefined
-      }
-      footer={
-        <Link
-          href="/login"
-          className="inline-flex items-center gap-2 hover:underline"
-        >
-          Sign in instead
-          <ArrowRight className="h-4 w-4" />
-        </Link>
+        [
+          { label: "System", active: step === 1 },
+          { label: "Domain", active: step === 2 },
+          { label: "Account", active: step === 3 },
+        ]
       }
     >
-      {showDomainStep ? (
+      {step === 1 ? (
+        <div className="space-y-5">
+          <p className="text-sm leading-6 text-neutral-600">
+            Mailflare checks its required Cloudflare configuration and initializes a clean D1 database before setup continues.
+          </p>
+          <div className="space-y-2">
+            {loading && checks.length === 0 && (
+              <div className="flex items-center gap-3 rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-600">
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+                Checking installation
+              </div>
+            )}
+            {checks.map((check) => (
+              <div key={check.key} className="flex items-start gap-3 rounded-2xl bg-neutral-50 px-4 py-3">
+                {check.configured ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-600" />
+                ) : (
+                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-600" />
+                )}
+                <div>
+                  <p className="text-sm font-medium text-neutral-800">{check.key}</p>
+                  {!check.configured && <p className="mt-1 text-xs leading-5 text-neutral-500">{check.message}</p>}
+                </div>
+              </div>
+            ))}
+            {preparationComplete && (
+              <div className="flex items-center gap-3 rounded-2xl bg-green-50 px-4 py-3 text-sm text-green-700">
+                <CheckCircle2 className="h-4 w-4" />
+                {databaseMigrated ? "Clean database migrated successfully" : "Database schema is ready"}
+              </div>
+            )}
+          </div>
+          {error && (
+            <p className="rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {error}
+            </p>
+          )}
+          {preparationComplete ? (
+            <Button
+              type="button"
+              className="h-11 w-full rounded-full px-6 active:scale-[0.98]"
+              onClick={() => setStep(hasPrimaryDomain ? 3 : 2)}
+            >
+              Continue
+            </Button>
+          ) : (
+            <Button
+              type="button"
+              variant="outline"
+              className="h-11 w-full rounded-full px-6 active:scale-[0.98]"
+              disabled={loading}
+              onClick={() => void runPreparation()}
+            >
+              {loading ? "Checking..." : "Check again"}
+            </Button>
+          )}
+        </div>
+      ) : showDomainStep ? (
         <form onSubmit={onDomainSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="domain">Primary domain</Label>

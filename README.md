@@ -106,7 +106,10 @@ Deploy with Wrangler or the Cloudflare Git integration so the Durable Object cla
 When the socket is temporarily unavailable, the client retries automatically and uses a slower
 fallback refresh until the connection recovers.
 
-Register at `/register`, complete `/onboarding`, or seed dev data:
+Complete first-run configuration at `/setup`, or seed dev data. The first setup step checks the
+required Cloudflare runtime configuration and initializes the schema when the bound D1 database is
+empty. Existing databases are never migrated by the setup page; apply later migrations with the
+normal Wrangler migration command.
 
 ```bash
 curl -X POST http://localhost:3000/api/seed
@@ -130,6 +133,13 @@ Required setup values:
 - `CF_TOKEN` — runtime scoped Cloudflare API token with Zone Read, Email Routing Edit, Email Sending Edit, and Email Routing Rules Write. This is separate from Cloudflare's deploy/build token; Cloudflare does not automatically expose the deploy token to this app.
 - `CF_AID` — optional unless your token can access multiple accounts.
 - `CF_EMAIL_WORKER_NAME` — must match the deployed Worker name. If the one-click deploy flow asks for a different Worker name, enter that same value here.
+
+### Database backup workflow binding
+
+Manual and scheduled database backups require the `DATABASE_BACKUP_WORKFLOW` binding declared in
+`wrangler.jsonc`. If the backup page reports that the binding is missing, deploy the complete Worker
+with `npm run deploy`; `next dev` and source-only updates may not provision new Cloudflare bindings.
+The backup also requires `CF_AID`, `D1_DATABASE_ID`, and `D1_BACKUP_TOKEN` at runtime.
 
 ### Dashboard updates
 

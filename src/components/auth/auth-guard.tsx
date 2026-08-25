@@ -31,16 +31,16 @@ export function AuthGuard({ children, mode = "protected", requireMailbox, requir
 
 			const data = (await response.json()) as { hasMailboxes?: boolean; user?: { role?: string } };
 			if (mode === "public") {
-				router.replace(data.hasMailboxes === false ? "/onboarding" : "/inbox");
+				router.replace(data.hasMailboxes === false ? "/setup" : "/inbox");
 				return;
 			}
 
-			if (requireMailbox && data.hasMailboxes === false && pathname !== "/onboarding") {
-				router.replace("/onboarding");
+			if (requireMailbox && data.hasMailboxes === false && pathname !== "/setup") {
+				router.replace("/setup");
 				return;
 			}
 
-			if (!requireMailbox && data.hasMailboxes && pathname === "/onboarding") {
+			if (!requireMailbox && data.hasMailboxes && pathname === "/setup") {
 				router.replace("/inbox");
 				return;
 			}

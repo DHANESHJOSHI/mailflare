@@ -51,7 +51,7 @@ export async function POST(request: Request) {
 	const response = NextResponse.json({
 		ok: true,
 		token,
-		redirect: hasMailboxes ? "/inbox" : "/onboarding",
+		redirect: hasMailboxes ? "/inbox" : "/setup",
 	});
 	response.headers.set("Cache-Control", "no-store");
 	response.cookies.set(SESSION_COOKIE, token, {

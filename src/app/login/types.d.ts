@@ -3,7 +3,3 @@ export type LoginResult = {
 	redirect?: string;
 	error?: string;
 };
-
-export type RegistrationStatus = {
-	hasAdminAccount: boolean;
-};

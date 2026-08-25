@@ -65,6 +65,6 @@ export function getHomeActions(isLoggedIn: boolean): HomeAction[] {
 
 	return [
 		{ href: "/login", label: "Log in", variant: "outline" },
-		{ href: "/register", label: "Create account", variant: "default" },
+		{ href: "/setup", label: "Create account", variant: "default" },
 	];
 }

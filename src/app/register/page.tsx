@@ -1,10 +1,5 @@
-import { AuthGuard } from "@/components/auth/auth-guard";
-import { RegisterClient } from "./register-client";
+import { redirect } from "next/navigation";
 
 export default function RegisterPage() {
-	return (
-		<AuthGuard mode="public">
-			<RegisterClient />
-		</AuthGuard>
-	);
+	redirect("/setup");
 }

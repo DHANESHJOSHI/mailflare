@@ -10,6 +10,10 @@ import {
 	listBackups,
 	updateBackupSettings,
 } from "@/lib/backups/service";
+import {
+	BackupWorkflowUnavailableError,
+	getBackupWorkflowBinding,
+} from "@/lib/backups/utils";
 import { getEnv } from "@/lib/cloudflare";
 import { parseBackupSettingsInput } from "./utils";
 
@@ -48,9 +52,10 @@ export async function PUT(request: Request) {
 export async function POST(request: Request) {
 	try {
 		const { env, user } = await requireAdmin(request);
+		const workflow = getBackupWorkflowBinding(env);
 		const backupId = await createBackupRecord(env, "manual", user.id);
 		try {
-			await env.DATABASE_BACKUP_WORKFLOW.create({
+			await workflow.create({
 				id: `database-backup-${backupId}`,
 				params: { backupId, force: true },
 			});
@@ -65,6 +70,7 @@ export async function POST(request: Request) {
 		return NextResponse.json({ backupId }, { status: 202 });
 	} catch (error) {
 		const message = error instanceof Error ? error.message : "Failed to start backup";
-		return NextResponse.json({ error: message }, { status: 400 });
+		const status = error instanceof BackupWorkflowUnavailableError ? 503 : 400;
+		return NextResponse.json({ error: message }, { status });
 	}
 }

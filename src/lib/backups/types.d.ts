@@ -5,6 +5,13 @@ export type BackupWorkflowParams = {
 	force?: boolean;
 };
 
+export type BackupWorkflowBinding = {
+	create(options?: {
+		id?: string;
+		params?: BackupWorkflowParams;
+	}): Promise<unknown>;
+};
+
 export type D1ExportResult = {
 	at_bookmark?: string;
 	status?: string;
