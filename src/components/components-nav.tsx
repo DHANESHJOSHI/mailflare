@@ -54,7 +54,7 @@ export function NavItem({ link }:{ link: NavLink }) {
         className={classes}
         {...dropProps}
       >
-        <Icon className="h-4 w-4" />
+        <Icon className="h-4 w-4" style={{ color: link.iconColor }} />
         <span className="flex-1">{link.label}</span>
         {typeof link.count === "number" && link.count > 0 && (
           <span className="ml-auto mr-3 rounded-full px-2 py-0.5 text-sm font-semibold text-neutral-700">
@@ -71,7 +71,7 @@ export function NavItem({ link }:{ link: NavLink }) {
       className={cn("-ml-3 pl-6", classes)}
       {...dropProps}
     >
-      <Icon className="h-4 w-4" />
+      <Icon className="h-4 w-4" style={{ color: link.iconColor }} />
       <span className="flex-1">{link.label}</span>
       {typeof link.count === "number" && link.count > 0 && (
         <span className="ml-auto mr-3 rounded-full px-2 py-0.5 text-sm font-semibold text-neutral-700">

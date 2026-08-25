@@ -57,7 +57,8 @@ export async function POST(request: Request) {
 		userId: access.mailboxUserId,
 		mailboxId: parsed.data.mailboxId,
 		name,
+		color: parsed.data.color,
 	});
 
-	return NextResponse.json({ id, mailboxId: parsed.data.mailboxId, name });
+	return NextResponse.json({ id, mailboxId: parsed.data.mailboxId, name, color: parsed.data.color });
 }

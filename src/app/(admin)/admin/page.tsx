@@ -40,25 +40,25 @@ export default function AdminSettingsPage() {
 	return (
 		<div>
 			<div className="mb-8">
-				<h1 className="text-2xl font-normal text-neutral-900">Admin settings</h1>
+				<h1 className="text-3xl font-medium text-neutral-900">Admin settings</h1>
 				<p className="mt-2 text-sm text-neutral-500">
 					Manage workspace-level mail infrastructure and integrations.
 				</p>
 			</div>
-			<div className="grid max-w-5xl gap-4 md:grid-cols-2">
+			<div className="grid gap-4">
 				{sections.map((section) => {
 					const Icon = section.icon;
 
 					return (
 						<Link key={section.href} href={section.href}>
-							<Card className="h-full transition-shadow hover:shadow-md">
-								<CardHeader className="flex-row items-center gap-4 space-y-0">
+							<Card className="h-full rounded-3xl border-0 bg-white p-6 transition-colors hover:bg-blue-50/60">
+								<CardHeader className="flex-row items-center gap-4 space-y-0 py-0">
 									<div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
 										<Icon className="h-5 w-5" />
 									</div>
 									<CardTitle className="text-base">{section.title}</CardTitle>
 								</CardHeader>
-								<CardContent>
+								<CardContent className="pt-4">
 									<p className="text-sm text-neutral-500">{section.description}</p>
 								</CardContent>
 							</Card>

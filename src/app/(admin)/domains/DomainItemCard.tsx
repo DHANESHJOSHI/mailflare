@@ -14,7 +14,7 @@ export default function DomainItemCard({ item, dns, remove, loadDns }: any) {
   return (
     <div
       key={item.id}
-      className="flex flex-col gap-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm shadow-neutral-100"
+      className="flex flex-col gap-3 rounded-3xl bg-white p-5"
     >
       <div className="flex items-start gap-3">
         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600">

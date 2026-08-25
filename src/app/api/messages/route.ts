@@ -8,7 +8,7 @@ import { messages } from "@/db/schema";
 import { getContactDisplayNameMap } from "@/lib/contacts/service";
 import { normalizeEmailAddress } from "@/lib/email/address";
 import { getLatestEmailContent } from "@/lib/email/reply-content-utils";
-import { getMailboxAccessLevel, listAccessibleMailboxIds } from "@/lib/mailboxes/access";
+import { getMailboxAccessLevel, listAccessibleMailboxes } from "@/lib/mailboxes/access";
 
 export async function GET(request: Request) {
 	const env = getEnv();
@@ -29,7 +29,8 @@ export async function GET(request: Request) {
 	const offset = Math.max(Number(url.searchParams.get("offset") ?? 0), 0);
 
 	const db = getDb(env);
-	const accessibleMailboxIds = await listAccessibleMailboxIds(db, user);
+	const accessibleMailboxes = await listAccessibleMailboxes(db, user);
+	const accessibleMailboxIds = accessibleMailboxes.map((mailbox) => mailbox.id);
 	const conditions: SQL[] = [];
 	if (mailboxId) {
 		const access = await getMailboxAccessLevel(db, user, mailboxId);
@@ -86,17 +87,39 @@ export async function GET(request: Request) {
 		.orderBy(desc(messages.createdAt))
 		.limit(limit)
 		.offset(offset);
-	const contactMap = await getContactDisplayNameMap(
-		env,
-		user.id,
-		rows.flatMap((message) => [message.fromAddr, message.toAddr]),
+	const mailboxNameMap = new Map(
+		accessibleMailboxes.map((mailbox) => [
+			mailbox.id,
+			mailbox.displayName ?? mailbox.localPart,
+		]),
 	);
-	const enrichedRows = rows.map((message) => ({
-		...message,
-		snippet: getLatestEmailContent(message.snippet),
-		fromContactName: contactMap.get(normalizeEmailAddress(message.fromAddr)) ?? null,
-		toContactName: contactMap.get(normalizeEmailAddress(message.toAddr)) ?? null,
-	}));
+	const contactMapsByUserId = new Map(
+		await Promise.all(
+			Array.from(new Set(rows.map((message) => message.userId))).map(async (userId) => [
+				userId,
+				await getContactDisplayNameMap(
+					env,
+					userId,
+					rows
+						.filter((message) => message.userId === userId)
+						.flatMap((message) => [message.fromAddr, message.toAddr]),
+				),
+			] as const),
+		),
+	);
+	const enrichedRows = rows.map((message) => {
+		const contactMap = contactMapsByUserId.get(message.userId);
+		const accountName = message.mailboxId ? mailboxNameMap.get(message.mailboxId) : null;
+		return {
+			...message,
+			snippet: getLatestEmailContent(message.snippet),
+			fromContactName:
+				(message.direction === "outbound" ? accountName : null) ??
+				contactMap?.get(normalizeEmailAddress(message.fromAddr)) ??
+				null,
+			toContactName: contactMap?.get(normalizeEmailAddress(message.toAddr)) ?? null,
+		};
+	});
 
 	return NextResponse.json({ messages: enrichedRows, total: totalRow?.total ?? 0, limit, offset });
 }

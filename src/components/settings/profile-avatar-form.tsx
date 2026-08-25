@@ -1,130 +1,128 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Trash2, Upload, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Camera, LoaderCircle, User } from "lucide-react";
 import { authFetch } from "@/lib/auth/client";
+import {
+	dispatchProfileAvatarChanged,
+	getProfileAvatarUrl,
+} from "@/lib/profile/avatar-client";
+import { dispatchMailboxAvatarChanged } from "@/lib/mailboxes/avatar-client";
+import type { ProfileAvatarFormProps, ProfileAvatarSessionResponse } from "./types";
+import {
+	getMailboxProfileAvatarUrl,
+	PROFILE_AVATAR_ACCEPT,
+	uploadMailboxProfileAvatar,
+	uploadProfileAvatar,
+	validateProfileAvatar,
+} from "./profile-avatar-form-utils";
 
-export function ProfileAvatarForm() {
-	const [hasAvatar, setHasAvatar] = useState(false);
-	const [preview, setPreview] = useState<string | null>(null);
-	const [file, setFile] = useState<File | null>(null);
+export function ProfileAvatarForm({
+	mailboxId,
+	initialHasAvatar = false,
+	name = "Profile",
+}: ProfileAvatarFormProps) {
+	const [hasAvatar, setHasAvatar] = useState(initialHasAvatar);
+	const [avatarUrl, setAvatarUrl] = useState(
+		mailboxId ? `/api/mailboxes/${mailboxId}/avatar` : "/api/profile/avatar",
+	);
 	const [status, setStatus] = useState<string | null>(null);
 	const [busy, setBusy] = useState(false);
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	useEffect(() => {
+		if (mailboxId) {
+			setHasAvatar(initialHasAvatar);
+			setAvatarUrl(`/api/mailboxes/${mailboxId}/avatar`);
+			return;
+		}
+
 		authFetch("/api/auth/me", { redirectOnUnauthorized: false })
 			.then((response) => (response.ok ? response.json() : null))
 			.then((data) => {
-				const authData = data as { user?: { hasAvatar?: boolean } } | null;
+				const authData = data as ProfileAvatarSessionResponse | null;
 				setHasAvatar(!!authData?.user?.hasAvatar);
 			})
 			.catch(() => setHasAvatar(false));
-	}, []);
+	}, [initialHasAvatar, mailboxId]);
 
-	useEffect(() => {
-		if (!file) {
-			setPreview(null);
-			return;
-		}
-		const url = URL.createObjectURL(file);
-		setPreview(url);
-		return () => URL.revokeObjectURL(url);
-	}, [file]);
-
-	function onPick(event: React.ChangeEvent<HTMLInputElement>) {
+	async function onPick(event: React.ChangeEvent<HTMLInputElement>) {
 		const picked = event.target.files?.[0] ?? null;
-		setStatus(null);
-		if (picked && picked.size > 2 * 1024 * 1024) {
-			setStatus("Image must be 2 MB or smaller");
+		event.target.value = "";
+		if (!picked) return;
+
+		const validationError = validateProfileAvatar(picked);
+		if (validationError) {
+			setStatus(validationError);
 			return;
 		}
-		setFile(picked);
-	}
 
-	async function upload() {
-		if (!file) return;
 		setBusy(true);
 		setStatus(null);
 		try {
-			const body = new FormData();
-			body.append("file", file);
-			const response = await authFetch("/api/profile/avatar", { method: "POST", body });
-			if (!response.ok) {
-				const json = (await response.json().catch(() => null)) as { error?: string } | null;
-				throw new Error(json?.error ?? "Upload failed");
+			if (mailboxId) {
+				await uploadMailboxProfileAvatar(mailboxId, picked);
+			} else {
+				await uploadProfileAvatar(picked);
 			}
-			window.location.reload();
-		} catch (err) {
-			setStatus(err instanceof Error ? err.message : "Upload failed");
+			const nextAvatarUrl = mailboxId
+				? getMailboxProfileAvatarUrl(mailboxId)
+				: getProfileAvatarUrl();
+			setAvatarUrl(nextAvatarUrl);
+			setHasAvatar(true);
+			setBusy(false);
+			if (mailboxId) {
+				dispatchMailboxAvatarChanged(mailboxId, nextAvatarUrl);
+			} else {
+				dispatchProfileAvatarChanged(nextAvatarUrl);
+			}
+		} catch (error) {
+			setStatus(error instanceof Error ? error.message : "Upload failed");
 			setBusy(false);
 		}
 	}
-
-	async function remove() {
-		setBusy(true);
-		setStatus(null);
-		try {
-			const response = await authFetch("/api/profile/avatar", { method: "DELETE" });
-			if (!response.ok) throw new Error("Failed to remove picture");
-			window.location.reload();
-		} catch (err) {
-			setStatus(err instanceof Error ? err.message : "Failed to remove picture");
-			setBusy(false);
-		}
-	}
-
-	const shownImage = preview ?? (hasAvatar ? "/api/profile/avatar" : null);
 
 	return (
-		<Card>
-			<CardHeader>
-				<CardTitle>Profile picture</CardTitle>
-				<CardDescription>
-					Shown in the top-right corner of your dashboard. JPEG, PNG, WebP, or GIF up to 2 MB.
-				</CardDescription>
-			</CardHeader>
-			<CardContent className="space-y-4">
-				<div className="flex items-center gap-4">
-					{shownImage ? (
-						// eslint-disable-next-line @next/next/no-img-element
-						<img
-							src={shownImage}
-							alt="Profile picture"
-							className="h-16 w-16 rounded-full border border-neutral-200 object-cover"
-						/>
+		<div className="flex flex-col items-start gap-2">
+			<input
+				ref={inputRef}
+				type="file"
+				accept={PROFILE_AVATAR_ACCEPT}
+				className="hidden"
+				onChange={onPick}
+			/>
+			<button
+				type="button"
+				onClick={() => inputRef.current?.click()}
+				disabled={busy}
+				className="group relative h-24 w-24 overflow-hidden rounded-full border border-neutral-200 bg-blue-600 text-white shadow-sm outline-none ring-blue-500 transition focus-visible:ring-2 focus-visible:ring-offset-2 disabled:cursor-wait"
+				aria-label={hasAvatar ? `Change ${name} profile picture` : `Upload ${name} profile picture`}
+			>
+				{hasAvatar ? (
+					// eslint-disable-next-line @next/next/no-img-element
+					<img
+						src={avatarUrl}
+						alt={`${name} profile picture`}
+						className="h-full w-full object-cover"
+						onError={() => setHasAvatar(false)}
+					/>
+				) : (
+					<span className="flex h-full w-full items-center justify-center">
+						<User className="h-9 w-9" />
+					</span>
+				)}
+				<span className="absolute inset-0 flex items-center justify-center bg-neutral-950/55 opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100">
+					{busy ? (
+						<LoaderCircle className="h-6 w-6 animate-spin" />
 					) : (
-						<div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-600 text-white">
-							<User className="h-7 w-7" />
-						</div>
+						<span className="flex flex-col items-center gap-1 text-[11px] font-medium">
+							<Camera className="h-5 w-5" />
+							{hasAvatar ? "Change" : "Upload"}
+						</span>
 					)}
-					<div className="flex flex-wrap items-center gap-2">
-						<input
-							ref={inputRef}
-							type="file"
-							accept="image/jpeg,image/png,image/webp,image/gif"
-							className="hidden"
-							onChange={onPick}
-						/>
-						<Button type="button" variant="outline" onClick={() => inputRef.current?.click()} disabled={busy}>
-							Choose image
-						</Button>
-						<Button type="button" onClick={upload} disabled={busy || !file}>
-							<Upload className="h-4 w-4" />
-							{busy ? "Saving..." : "Save picture"}
-						</Button>
-						{hasAvatar && (
-							<Button type="button" variant="destructive" onClick={remove} disabled={busy}>
-								<Trash2 className="h-4 w-4" />
-								Remove
-							</Button>
-						)}
-					</div>
-				</div>
-				{status && <p className="text-sm text-red-600">{status}</p>}
-			</CardContent>
-		</Card>
+				</span>
+			</button>
+			{status && <p className="max-w-xs text-xs text-red-600">{status}</p>}
+		</div>
 	);
 }

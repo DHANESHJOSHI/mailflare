@@ -13,6 +13,7 @@ export function selectMailboxForUser(db: Db, userId: string, mailboxId: string) 
 			domainId: mailboxes.domainId,
 			localPart: mailboxes.localPart,
 			displayName: mailboxes.displayName,
+			avatarKey: mailboxes.avatarKey,
 			type: mailboxes.type,
 			disabled: mailboxes.disabled,
 			createdAt: mailboxes.createdAt,

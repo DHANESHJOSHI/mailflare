@@ -25,22 +25,22 @@ export default function SettingsExportPage() {
 	}
 
 	return (
-		<div className="max-w-3xl space-y-6 p-8">
+		<div className="space-y-6">
 			<div>
-				<h1 className="text-2xl font-semibold text-neutral-900">Export</h1>
+				<h1 className="text-3xl font-medium text-neutral-900">Export</h1>
 				<p className="mt-1 text-sm text-neutral-500">
 					Download mail from the currently selected mailbox.
 				</p>
 			</div>
 
-			<Card>
-				<CardHeader>
+			<Card className="rounded-3xl border-0 bg-white p-6">
+				<CardHeader className="py-0">
 					<CardDescription>
 						Download message headers and bodies from the selected mailbox as an .mbox file.
 						Attachments are not included in this export.
 					</CardDescription>
 				</CardHeader>
-				<CardContent className="space-y-3">
+				<CardContent className="space-y-3 pt-5">
 					<Button type="button" variant="outline" disabled={!selectedMailbox || exportState.loading} onClick={onExport}>
 						{exportState.loading ? "Preparing..." : "Download .mbox"}
 					</Button>

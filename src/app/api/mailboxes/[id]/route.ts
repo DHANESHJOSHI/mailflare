@@ -23,10 +23,12 @@ export async function GET(request: Request, { params }: MailboxRouteParams) {
 	if (!mailbox) {
 		return NextResponse.json({ error: "Mailbox not found" }, { status: 404 });
 	}
+	const { avatarKey, ...mailboxDetails } = mailbox;
 
 	return NextResponse.json({
 		mailbox: {
-			...mailbox,
+			...mailboxDetails,
+			hasAvatar: !!avatarKey,
 			permission: access.permission,
 			isPrimary: `${mailbox.localPart}@${mailbox.hostname}` === user.email,
 		},
@@ -60,10 +62,12 @@ export async function PATCH(request: Request, { params }: MailboxRouteParams) {
 	}
 
 	const [mailbox] = await selectMailboxForUser(db, user.id, id);
+	const { avatarKey, ...mailboxDetails } = mailbox!;
 
 	return NextResponse.json({
 		mailbox: {
-			...mailbox,
+			...mailboxDetails,
+			hasAvatar: !!avatarKey,
 			permission: access.permission,
 			isPrimary: `${mailbox!.localPart}@${mailbox!.hostname}` === user.email,
 		},

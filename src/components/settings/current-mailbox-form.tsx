@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ProfileAvatarForm } from "./profile-avatar-form";
 import { getMailboxAddress, updateCurrentMailboxName } from "./utils";
 
 export function CurrentMailboxForm() {
@@ -46,9 +47,9 @@ export function CurrentMailboxForm() {
 
 	if (isLoading) {
 		return (
-			<div className="max-w-2xl space-y-6 p-8">
+			<div className="space-y-6">
 				<Skeleton className="h-8 w-32" />
-				<Card>
+				<Card className="rounded-3xl border-0 bg-white p-6">
 					<CardContent className="space-y-4 p-6">
 						<Skeleton className="h-4 w-24" />
 						<Skeleton className="h-10 w-full" />
@@ -61,9 +62,9 @@ export function CurrentMailboxForm() {
 
 	if (!selectedMailbox) {
 		return (
-			<div className="max-w-2xl space-y-6 p-8">
-				<h1 className="text-2xl font-semibold text-neutral-900">Settings</h1>
-				<Card>
+			<div className="space-y-6">
+				<h1 className="text-3xl font-medium text-neutral-900">Settings</h1>
+				<Card className="rounded-3xl border-0 bg-white p-6">
 					<CardContent className="p-6 text-sm text-neutral-500">
 						Select a mailbox to view its settings.
 					</CardContent>
@@ -76,18 +77,18 @@ export function CurrentMailboxForm() {
 	const hasChanges = displayName.trim() !== savedDisplayName;
 
 	return (
-		<div className="max-w-3xl space-y-8 p-8">
+		<div className="space-y-8">
 			<div>
-				<h1 className="text-2xl font-semibold text-neutral-900">Settings</h1>
+				<h1 className="text-3xl font-medium text-neutral-900">Settings</h1>
 				<p className="mt-1 text-sm text-neutral-500">{address}</p>
 			</div>
 
-			<Card>
-				<CardHeader>
-					<CardTitle>Mailbox</CardTitle>
-					<CardDescription>Update the currently selected mailbox.</CardDescription>
-				</CardHeader>
-				<CardContent>
+				<CardContent className="space-y-6 rounded-3xl bg-white p-6">
+					<ProfileAvatarForm
+						mailboxId={selectedMailbox.id}
+						initialHasAvatar={!!selectedMailbox.hasAvatar}
+						name={selectedMailbox.displayName || selectedMailbox.localPart}
+					/>
 					<form onSubmit={onSubmit} className="space-y-4">
 						<div className="space-y-2">
 							<Label htmlFor="displayName">Name</Label>
@@ -99,16 +100,6 @@ export function CurrentMailboxForm() {
 								disabled={saving}
 							/>
 						</div>
-						<div className="grid gap-4 rounded-md border border-neutral-200 bg-neutral-50 px-3 py-3 sm:grid-cols-2">
-							<div className="space-y-1">
-								<p className="text-xs font-medium uppercase text-neutral-500">Email</p>
-								<p className="truncate no-font-mono text-sm text-neutral-900">{address}</p>
-							</div>
-							<div className="space-y-1">
-								<p className="text-xs font-medium uppercase text-neutral-500">Domain</p>
-								<p className="truncate no-font-mono text-sm text-neutral-900">{selectedMailbox.hostname}</p>
-							</div>
-						</div>
 						<div className="flex items-center gap-3">
 							<Button type="submit" disabled={saving || !hasChanges}>
 								<Save className="h-4 w-4" />
@@ -118,7 +109,6 @@ export function CurrentMailboxForm() {
 						</div>
 					</form>
 				</CardContent>
-			</Card>
 		</div>
 	);
 }

@@ -7,9 +7,14 @@ import type { EmailPageTitleInput } from "./types";
 import type { MessageFolderConfig } from "./types";
 import type { PageRange } from "./types";
 
-export function getMessageParty(message: Message, folder: MessageFolderConfig["folder"]) {
+export function getMessageParty(
+	message: Message,
+	folder: MessageFolderConfig["folder"],
+	currentAccountName?: string,
+) {
 	if (folder === "drafts") return "Draft";
 	if (folder === "sent") return message.toContactName ?? (message.toAddr ? getEmailDisplayName(message.toAddr) : "No recipient");
+	if (message.direction === "outbound" && currentAccountName) return currentAccountName;
 	return message.fromContactName ?? (message.fromAddr ? getEmailDisplayName(message.fromAddr) : "Unknown sender");
 }
 
@@ -25,17 +30,11 @@ export function getMessagePreview(message: Message, folder: MessageFolderConfig[
 	return message.snippet || "No preview";
 }
 
-export function getMessageBadge(message: Message, folder: MessageFolderConfig["folder"]) {
-	if (folder === "drafts") return "draft";
-	if (folder === "archived" || folder === "trash" || folder === "spam") return message.status;
-	return message.direction;
-}
-
 export function formatMessageListTimestamp(createdAt: string): string {
 	const date = dayjs(createdAt);
-	if (date.isSame(dayjs(), "day")) return date.format("h:mm A");
-	if (date.isSame(dayjs(), "year")) return date.format("MMM D");
-	return date.format("M/D/YY");
+	if (date.isSame(dayjs(), "day")) return date.format("hh:mm A");
+	if (date.isSame(dayjs(), "year")) return date.format("MMM DD");
+	return date.format("MMM DD, YYYY");
 }
 
 export function getPageRange(offset: number, count: number, total: number): PageRange {

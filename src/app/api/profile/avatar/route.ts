@@ -4,13 +4,12 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
-
-const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
-
-function avatarKeyFor(userId: string) {
-	return `avatars/${userId}`;
-}
+import {
+	ALLOWED_AVATAR_TYPES,
+	MAX_AVATAR_SIZE,
+	avatarKeyFor,
+	isUploadedAvatarFile,
+} from "./utils";
 
 export async function GET(request: Request) {
 	const env = getEnv();
@@ -22,7 +21,7 @@ export async function GET(request: Request) {
 	if (!object) return new Response("Not found", { status: 404 });
 
 	const headers = new Headers();
-	object.writeHttpMetadata(headers);
+	headers.set("Content-Type", object.httpMetadata?.contentType ?? "application/octet-stream");
 	headers.set("X-Content-Type-Options", "nosniff");
 	headers.set(
 		"Content-Security-Policy",
@@ -44,10 +43,10 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: "Expected multipart form data" }, { status: 400 });
 	}
 	const file = form.get("file");
-	if (!(file instanceof File)) {
+	if (!isUploadedAvatarFile(file)) {
 		return NextResponse.json({ error: "Missing image file" }, { status: 400 });
 	}
-	if (!ALLOWED_TYPES.includes(file.type)) {
+	if (!ALLOWED_AVATAR_TYPES.includes(file.type)) {
 		return NextResponse.json({ error: "Use a JPEG, PNG, WebP, or GIF image" }, { status: 400 });
 	}
 	if (file.size > MAX_AVATAR_SIZE) {

@@ -1,4 +1,5 @@
 import { authFetch } from "@/lib/auth/client";
+import { clearMailboxesCache } from "@/components/mailbox-provider-utils";
 import type { MailboxDetail, MailboxDetailResponse } from "./types";
 
 export function getMailboxAddress(mailbox: Pick<MailboxDetail, "localPart" | "hostname">): string {
@@ -28,5 +29,6 @@ export async function updateMailboxName(id: string, displayName: string): Promis
 		throw new Error(json.error ?? "Failed to update mailbox");
 	}
 
+	clearMailboxesCache();
 	return json.mailbox;
 }

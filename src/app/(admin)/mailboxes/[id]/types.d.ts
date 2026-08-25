@@ -4,6 +4,7 @@ export type MailboxDetail = {
 	domainId: string;
 	localPart: string;
 	displayName: string | null;
+	hasAvatar?: boolean;
 	type?: "personal" | "shared";
 	permission?: "read_only" | "send_as" | "send_on_behalf" | "full_access";
 	disabled?: boolean;
@@ -14,5 +15,15 @@ export type MailboxDetail = {
 
 export type MailboxDetailResponse = {
 	mailbox?: MailboxDetail;
+	error?: string;
+};
+
+export type MailboxAvatarFormProps = {
+	mailboxId: string;
+	hasAvatar: boolean;
+	name: string;
+};
+
+export type MailboxAvatarUploadResponse = {
 	error?: string;
 };

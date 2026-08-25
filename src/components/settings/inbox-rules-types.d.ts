@@ -14,6 +14,15 @@ export type InboxRule = {
 	priority: number;
 };
 
+export type InboxRuleInput = {
+	mailboxId: string;
+	matchField: "email" | "content" | "title";
+	matchOperator: "contains" | "exact";
+	matchValue: string;
+	destination: string;
+	priority: number;
+};
+
 export type InboxRulesResponse = {
 	rules: InboxRule[];
 	error?: string;

@@ -10,11 +10,17 @@ export async function fetchMessageDetail(messageId: string): Promise<MessageDeta
 	return (await response.json()) as MessageDetailResponse;
 }
 
-export function getMessageHeaderParties(message: Message) {
+export function getMessageHeaderParties(message: Message, currentAccountName?: string) {
 	return {
-		fromName: getDisplayNameForAddress(message.fromAddr, message.fromContactName),
+		fromName:
+			message.direction === "outbound" && currentAccountName
+				? currentAccountName
+				: getDisplayNameForAddress(message.fromAddr, message.fromContactName),
 		fromAddress: getEmailAddress(message.fromAddr),
-		toName: getDisplayNameForAddress(message.toAddr, message.toContactName),
+		toName:
+			message.direction === "inbound"
+				? "me"
+				: getDisplayNameForAddress(message.toAddr, message.toContactName),
 	};
 }
 

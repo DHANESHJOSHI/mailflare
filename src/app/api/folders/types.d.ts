@@ -3,5 +3,6 @@ export type FolderListItem = {
 	userId: string;
 	mailboxId: string;
 	name: string;
+	color: string;
 	createdAt: Date;
 };

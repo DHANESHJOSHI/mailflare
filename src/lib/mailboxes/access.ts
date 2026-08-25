@@ -39,6 +39,7 @@ export async function listAccessibleMailboxes(db: AppDatabase, user: Pick<Sessio
 			domainId: mailboxes.domainId,
 			localPart: mailboxes.localPart,
 			displayName: mailboxes.displayName,
+			avatarKey: mailboxes.avatarKey,
 			type: mailboxes.type,
 			disabled: mailboxes.disabled,
 			createdAt: mailboxes.createdAt,
@@ -54,11 +55,15 @@ export async function listAccessibleMailboxes(db: AppDatabase, user: Pick<Sessio
 			if (isAdmin(user) && row.domainUserId === user.id) return true;
 			return false;
 		})
-		.map((row) => ({
-			...row,
-			permission: "full_access" as MailboxPermission,
-			isPrimary: `${row.localPart}@${row.hostname}` === user.email,
-		}));
+		.map((row) => {
+			const { avatarKey, ...mailbox } = row;
+			return {
+				...mailbox,
+				hasAvatar: !!avatarKey,
+				permission: "full_access" as MailboxPermission,
+				isPrimary: `${row.localPart}@${row.hostname}` === user.email,
+			};
+		});
 }
 
 export async function listAccessibleMailboxIds(db: AppDatabase, user: Pick<SessionUser, "id" | "email" | "role">) {

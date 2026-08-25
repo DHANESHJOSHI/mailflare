@@ -2,23 +2,107 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, LogOut, Mail, Settings } from "lucide-react";
+import { Check, LogOut, ShieldCheck, UserRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { useMessageCounts } from "@/hooks/use-message-counts";
 import { authFetch } from "@/lib/auth/client";
 import { logoutClientSession } from "@/lib/auth/logout";
-import { cn } from "@/lib/utils";
+import {
+	PROFILE_AVATAR_CHANGED_EVENT,
+	getProfileAvatarUrl,
+} from "@/lib/profile/avatar-client";
+import type { ProfileAvatarChangedDetail } from "@/lib/profile/types";
+import { MAILBOX_AVATAR_CHANGED_EVENT } from "@/lib/mailboxes/avatar-client";
+import type { MailboxAvatarChangedDetail } from "@/lib/mailboxes/avatar-client-types";
 import { Skeleton } from "@/components/ui/skeleton";
+import type {
+	AccountAvatarProps,
+	MailboxAccountRowProps,
+	MailboxSelectorUser,
+} from "./mailbox-selector-types";
+import {
+	getAccountInitial,
+	getMailboxAddress,
+	getMailboxName,
+	isAdminPath,
+} from "./mailbox-selector-utils";
+
+function AccountAvatar({
+	name,
+	hasAvatar = false,
+	avatarUrl = "/api/profile/avatar",
+	size = "small",
+	onAvatarError,
+}: AccountAvatarProps) {
+	const sizeClass = size === "large" ? "h-16 w-16 text-xl" : "h-10 w-10 text-sm";
+	const [imageFailed, setImageFailed] = useState(false);
+
+	useEffect(() => {
+		setImageFailed(false);
+	}, [avatarUrl, hasAvatar]);
+
+	if (hasAvatar && !imageFailed) {
+		return (
+			// eslint-disable-next-line @next/next/no-img-element
+			<img
+				src={avatarUrl}
+				alt={`${name} profile picture`}
+				className={`${sizeClass} shrink-0 rounded-full border border-neutral-200 object-cover`}
+				onError={() => {
+					setImageFailed(true);
+					onAvatarError?.();
+				}}
+			/>
+		);
+	}
+
+	return (
+		<div
+			className={`${sizeClass} flex shrink-0 items-center justify-center rounded-full bg-blue-600 font-semibold text-white`}
+			aria-hidden="true"
+		>
+			{getAccountInitial(name)}
+		</div>
+	);
+}
+
+function MailboxAccountRow({ mailbox, unread, avatarUrl, onSelect }: MailboxAccountRowProps) {
+	const name = getMailboxName(mailbox);
+
+	return (
+		<button
+			type="button"
+			onClick={onSelect}
+			className="flex w-full items-center gap-3 rounded-2xl px-4 py-3 text-left transition-colors hover:bg-white"
+		>
+			<AccountAvatar
+				name={name}
+				hasAvatar={!!mailbox.hasAvatar || !!avatarUrl}
+				avatarUrl={avatarUrl ?? `/api/mailboxes/${mailbox.id}/avatar`}
+			/>
+			<div className="min-w-0 flex-1">
+				<p className="truncate text-sm font-semibold text-neutral-900">{name}</p>
+				<p className="truncate text-xs text-neutral-500">{getMailboxAddress(mailbox)}</p>
+			</div>
+			{unread > 0 && (
+				<span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
+					{unread > 99 ? "99+" : unread}
+				</span>
+			)}
+		</button>
+	);
+}
 
 export function MailboxSelector() {
-	const { selectedMailbox, setSelectedMailbox, mailboxes, isLoading } =
-		useSelectedMailbox();
+	const { selectedMailbox, setSelectedMailbox, mailboxes, isLoading } = useSelectedMailbox();
 	const pathname = usePathname();
 	const router = useRouter();
 	const [open, setOpen] = useState(false);
-	const [isAdmin, setIsAdmin] = useState(false);
+	const [user, setUser] = useState<MailboxSelectorUser | null>(null);
 	const [hasAvatar, setHasAvatar] = useState(false);
+	const [avatarUrl, setAvatarUrl] = useState("/api/profile/avatar");
+	const [mailboxAvatarUrls, setMailboxAvatarUrls] = useState<Record<string, string>>({});
 	const ref = useRef<HTMLDivElement>(null);
 	const { counts } = useMessageCounts(null, open);
 
@@ -33,37 +117,57 @@ export function MailboxSelector() {
 
 	useEffect(() => {
 		authFetch("/api/auth/me", { redirectOnUnauthorized: false })
-			.then((response) => response.ok ? response.json() : null)
+			.then((response) => (response.ok ? response.json() : null))
 			.then((data) => {
-				const authData = data as { user?: { role?: string; hasAvatar?: boolean } } | null;
-				setIsAdmin(authData?.user?.role === "admin");
+				const authData = data as { user?: MailboxSelectorUser } | null;
+				setUser(authData?.user ?? null);
 				setHasAvatar(!!authData?.user?.hasAvatar);
 			})
-			.catch(() => setIsAdmin(false));
+			.catch(() => setUser(null));
+	}, []);
+
+	useEffect(() => {
+		function onAvatarChanged(event: Event) {
+			const detail = (event as CustomEvent<ProfileAvatarChangedDetail>).detail;
+			setAvatarUrl(detail?.url ?? getProfileAvatarUrl());
+			setHasAvatar(true);
+		}
+
+		window.addEventListener(PROFILE_AVATAR_CHANGED_EVENT, onAvatarChanged);
+		return () => window.removeEventListener(PROFILE_AVATAR_CHANGED_EVENT, onAvatarChanged);
+	}, []);
+
+	useEffect(() => {
+		function onMailboxAvatarChanged(event: Event) {
+			const detail = (event as CustomEvent<MailboxAvatarChangedDetail>).detail;
+			if (!detail?.mailboxId || !detail.url) return;
+			setMailboxAvatarUrls((current) => ({
+				...current,
+				[detail.mailboxId]: detail.url,
+			}));
+		}
+
+		window.addEventListener(MAILBOX_AVATAR_CHANGED_EVENT, onMailboxAvatarChanged);
+		return () => window.removeEventListener(MAILBOX_AVATAR_CHANGED_EVENT, onMailboxAvatarChanged);
 	}, []);
 
 	if (isLoading) {
-		return (
-			<div className="flex items-center gap-3 px-2">
-				<div className="space-y-1.5">
-					<Skeleton className="h-3.5 w-24" />
-					<Skeleton className="h-2.5 w-16" />
-				</div>
-				<Skeleton className="h-8 w-8 rounded-full" />
-			</div>
-		);
+		return <Skeleton className="h-10 w-10 rounded-full" />;
 	}
 
-	const selectedName = selectedMailbox?.displayName ?? selectedMailbox?.localPart ?? "All mailboxes";
-	const selectedEmail = selectedMailbox
-		? `${selectedMailbox.localPart}@${selectedMailbox.hostname}`
-		: "All domains";
-	const adminActive =
-		pathname === "/admin" ||
-		pathname.startsWith("/mailboxes") ||
-		pathname.startsWith("/domains") ||
-		pathname.startsWith("/api-keys") ||
-		pathname.startsWith("/webhooks");
+	const selectedName = selectedMailbox ? getMailboxName(selectedMailbox) : user?.name ?? "Account";
+	const selectedEmail = selectedMailbox ? getMailboxAddress(selectedMailbox) : user?.email ?? "";
+	const selectedMailboxAvatarUrl = selectedMailbox
+		? mailboxAvatarUrls[selectedMailbox.id]
+		: undefined;
+	const selectedHasAvatar = selectedMailbox
+		? !!selectedMailbox.hasAvatar || !!selectedMailboxAvatarUrl
+		: hasAvatar;
+	const selectedAvatarUrl = selectedMailbox
+		? selectedMailboxAvatarUrl ?? `/api/mailboxes/${selectedMailbox.id}/avatar`
+		: avatarUrl;
+	const otherMailboxes = mailboxes.filter((mailbox) => mailbox.id !== selectedMailbox?.id);
+	const adminActive = isAdminPath(pathname);
 
 	async function logout() {
 		await logoutClientSession();
@@ -77,111 +181,96 @@ export function MailboxSelector() {
 			<button
 				type="button"
 				onClick={() => setOpen((value) => !value)}
-				className="flex items-center justify-between gap-3 rounded-full pr-2 pl-4 py-1.5 text-left hover:bg-neutral-200"
+				className="rounded-full p-1 transition-colors hover:bg-neutral-200"
+				aria-label="Open account menu"
+				aria-expanded={open}
 			>
-				<div className="flex min-w-0 items-center gap-3">
-					<div className="min-w-0 text-right flex flex-col justify-center">
-						<p className="truncate text-sm font-medium text-neutral-800">{selectedName}</p>
-						<p className="truncate text-[11px] text-neutral-500">{selectedEmail}</p>
+				<AccountAvatar
+					name={selectedName}
+					hasAvatar={selectedHasAvatar}
+					avatarUrl={selectedAvatarUrl}
+					onAvatarError={() => {
+						if (!selectedMailbox) setHasAvatar(false);
+					}}
+				/>
+			</button>
+
+			{open && (
+				<div className="absolute right-0 top-14 z-50 w-[360px] overflow-hidden rounded-[28px] border border-neutral-200 bg-[#eef3fb] p-3 shadow-2xl shadow-neutral-900/20">
+					<div className="rounded-[22px] bg-white px-5 py-5">
+						<div className="flex items-center gap-4">
+							<AccountAvatar
+								name={selectedName}
+								hasAvatar={selectedHasAvatar}
+								avatarUrl={selectedAvatarUrl}
+								size="large"
+								onAvatarError={() => {
+									if (!selectedMailbox) setHasAvatar(false);
+								}}
+							/>
+							<div className="min-w-0 flex-1">
+								<p className="truncate text-lg font-semibold text-neutral-900">
+									{selectedName}
+								</p>
+								<p className="truncate text-sm text-neutral-500">
+									{selectedEmail}
+								</p>
+							</div>
+							<Check className="h-5 w-5 shrink-0 text-blue-600" />
+						</div>
 					</div>
-					{hasAvatar ? (
-						// eslint-disable-next-line @next/next/no-img-element
-						<img
-							src="/api/profile/avatar"
-							alt="Profile"
-							className="h-8 w-8 shrink-0 rounded-full object-cover"
-							onError={() => setHasAvatar(false)}
-						/>
-					) : (
-						<div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-600 text-white">
-							<Mail className="h-4 w-4" />
+
+					{otherMailboxes.length > 0 && (
+						<div className="mt-2 rounded-[22px] bg-white/55 p-1">
+							<p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+								Other accounts
+							</p>
+							{otherMailboxes.map((mailbox) => {
+								const mailboxCount = counts.mailboxes.find((count) => count.mailboxId === mailbox.id);
+								return (
+									<MailboxAccountRow
+										key={mailbox.id}
+										mailbox={mailbox}
+										unread={mailboxCount?.unread ?? 0}
+										avatarUrl={mailboxAvatarUrls[mailbox.id]}
+										onSelect={() => {
+											setSelectedMailbox(mailbox);
+											setOpen(false);
+											router.push("/inbox");
+										}}
+									/>
+								);
+							})}
 						</div>
 					)}
-				</div>
-				{/* <ChevronDown className="h-4 w-4 shrink-0 text-neutral-500" /> */}
-			</button>
-			{open && (
-				<div className="absolute right-0 top-12 z-50 w-80 overflow-hidden rounded-2xl border border-neutral-200 bg-white py-2 shadow-xl">
-					<div className="px-4 pt-3 pb-2">
-						<p className="text-sm font-medium text-neutral-900">Mailboxes</p>
-						<p className="text-xs text-neutral-500">Choose the active sending and inbox account.</p>
-					</div>
-					{mailboxes.map((mb) => {
-						const email = `${mb.localPart}@${mb.hostname}`;
-						const name = mb.displayName ?? mb.localPart;
-						const active = !adminActive && selectedMailbox?.id === mb.id;
-						const mailboxCount = counts.mailboxes.find((count) => count.mailboxId === mb.id);
-						const unread = mailboxCount?.unread ?? 0;
 
-						return (
-							<button
-								key={mb.id}
-								type="button"
-								onClick={() => {
-									setSelectedMailbox(mb);
-									setOpen(false);
-									router.push("/inbox");
-								}}
-								className={cn(
-									"flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-[#f2f6fc]",
-									active && "bg-blue-50",
-								)}
-							>
-								<div className="flex h-9 w-9 items-center justify-center rounded-full bg-blue-100 text-blue-700">
-									{name.slice(0, 1).toUpperCase()}
-								</div>
-								<div className="min-w-0 flex-1">
-									<div className="flex items-center gap-2">
-										<p className="truncate text-sm font-medium text-neutral-900">{name}</p>
-										{mb.isPrimary && (
-											<span className="rounded-full bg-blue-100 px-2 py-0.5 text-[10px] font-medium text-blue-700">
-												Primary
-											</span>
-										)}
-									</div>
-									<p className="truncate text-xs text-neutral-500">{email}</p>
-								</div>
-								{unread > 0 && (
-									<span className="rounded-full bg-blue-100 px-2 py-0.5 text-[11px] font-semibold text-blue-700">
-										{unread > 99 ? "99+" : unread}
-									</span>
-								)}
-								{active && <Check className="h-4 w-4 text-blue-600" />}
-							</button>
-						);
-					})}
-					<div className="mt-2 border-t divide-y divide-neutral-100 border-neutral-100 pt-2">
-						{isAdmin && (
+					<div className="mt-2 overflow-hidden rounded-[22px] bg-white">
+						<Link
+							href="/settings"
+							onClick={() => setOpen(false)}
+							className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc]"
+						>
+							<UserRound className="h-5 w-5 text-neutral-600" />
+							Account
+						</Link>
+						{user?.role === "admin" && (
 							<Link
 								href="/admin"
 								onClick={() => setOpen(false)}
-								className={cn(
-									"flex items-center gap-3 px-4 py-3 text-sm font-medium text-neutral-700 hover:bg-[#f2f6fc]",
-									adminActive && "bg-blue-50",
-								)}
+								className={`flex items-center gap-3 border-t border-neutral-100 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc] ${adminActive ? "bg-blue-50" : ""}`}
 							>
-								<div className="flex h-9 w-9 items-center justify-center rounded-full bg-neutral-100 text-neutral-700">
-									<Settings className="h-4 w-4" />
-								</div>
-								<div>
-									<p className="text-sm font-medium text-neutral-900">Admin settings</p>
-									<p className="text-xs text-neutral-500">Domains, mailboxes, API keys</p>
-								</div>
+								<ShieldCheck className="h-5 w-5 text-neutral-600" />
+								Admin
 								{adminActive && <Check className="ml-auto h-4 w-4 text-blue-600" />}
 							</Link>
 						)}
 						<button
 							type="button"
 							onClick={logout}
-							className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-medium text-red-600 hover:bg-red-50"
+							className="flex w-full items-center gap-3 border-t border-neutral-100 px-5 py-4 text-left text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc]"
 						>
-							<div className="flex h-9 w-9 items-center justify-center rounded-full bg-red-50 text-red-600">
-								<LogOut className="h-4 w-4" />
-							</div>
-							<div>
-								<p className="text-sm font-medium">Log out</p>
-								<p className="text-xs text-red-500/80">Sign out of this session</p>
-							</div>
+							<LogOut className="h-5 w-5 text-neutral-600" />
+							Sign out
 						</button>
 					</div>
 				</div>

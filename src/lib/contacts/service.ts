@@ -1,8 +1,8 @@
 import { and, eq, inArray } from "drizzle-orm";
 import { getDb } from "@/db";
-import { contacts } from "@/db/schema";
+import { contacts, routingRules } from "@/db/schema";
 import { normalizeEmailAddress } from "@/lib/email/address";
-import type { ContactInput, MessageContactNames } from "@/lib/contacts/types";
+import type { BlockContactInput, ContactInput, MessageContactNames } from "@/lib/contacts/types";
 import { getContactId, getContactNameFromAddress } from "@/lib/contacts/utils";
 
 export async function upsertContactFromAddress(env: CloudflareEnv, input: ContactInput) {
@@ -76,6 +76,62 @@ export async function getMessageContactNames(
 		fromContactName: contactMap.get(normalizeEmailAddress(fromAddr)) ?? null,
 		toContactName: contactMap.get(normalizeEmailAddress(toAddr)) ?? null,
 	};
+}
+
+export async function blockContact(env: CloudflareEnv, input: BlockContactInput) {
+	const email = normalizeEmailAddress(input.address);
+	if (!email) throw new Error("Contact email is required");
+
+	const db = getDb(env);
+	const contactId = getContactId(input.userId, email);
+	const [existingContact] = await db
+		.select()
+		.from(contacts)
+		.where(and(eq(contacts.userId, input.userId), eq(contacts.email, email)))
+		.limit(1);
+	if (existingContact) {
+		await db.update(contacts).set({ blocked: true }).where(eq(contacts.id, existingContact.id));
+	} else {
+		await db.insert(contacts).values({
+			id: contactId,
+			userId: input.userId,
+			email,
+			displayName: getContactNameFromAddress(input.address),
+			source: "inbound",
+			blocked: true,
+			lastSeenAt: new Date(),
+		});
+	}
+
+	const [existingRule] = await db
+		.select()
+		.from(routingRules)
+		.where(
+			and(
+				eq(routingRules.mailboxId, input.mailboxId),
+				eq(routingRules.matchField, "email"),
+				eq(routingRules.matchOperator, "exact"),
+				eq(routingRules.matchValue, email),
+				eq(routingRules.action, "trash"),
+			),
+		)
+		.limit(1);
+	if (!existingRule) {
+		await db.insert(routingRules).values({
+			id: `block:${input.mailboxId}:${email}`,
+			userId: input.userId,
+			domainId: input.domainId,
+			pattern: email,
+			matchField: "email",
+			matchOperator: "exact",
+			matchValue: email,
+			mailboxId: input.mailboxId,
+			action: "trash",
+			priority: 100,
+		});
+	}
+
+	return { email, blocked: true };
 }
 
 function getNextDisplayName(existingName: string | null, source: string, nextName: string | null): string | null {

@@ -9,6 +9,13 @@ export type ContactInput = {
 	source: ContactSource;
 };
 
+export type BlockContactInput = {
+	userId: string;
+	mailboxId: string;
+	domainId: string;
+	address: string;
+};
+
 export type MessageContactNames = {
 	fromContactName: string | null;
 	toContactName: string | null;

@@ -15,7 +15,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { importMessageFiles } from "@/components/settings/import-messages-utils";
-import { cn } from "@/lib/utils";
 import type {
   ImapFormState,
   ImportResult,
@@ -157,36 +156,32 @@ export default function SettingsImportPage() {
   }
 
   return (
-    <div className="max-w-3xl space-y-6 p-8">
+    <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold text-neutral-900">Import</h1>
+        <h1 className="text-3xl font-medium text-neutral-900">Import</h1>
         <p className="mt-1 text-sm text-neutral-500">
           Move mail from selected source sections into the matching sections of
           the current mailbox.
         </p>
       </div>
-      <Card>
-        <div className="flex rounded-xl border border-neutral-200 bg-neutral-50 p-1 m-2">
-          {(["file", "imap"] as ImportTab[]).map((tab) => (
-            <button
-              key={tab}
-              type="button"
-              onClick={() => setActiveTab(tab)}
-              className={cn(
-                "flex-1 rounded-lg px-4 py-2 text-sm font-medium transition-colors",
-                activeTab === tab
-                  ? "bg-white text-neutral-900 shadow-sm"
-                  : "text-neutral-500 hover:text-neutral-900",
-              )}
-            >
-              {tab === "file" ? "Backup File" : "IMAP"}
-            </button>
-          ))}
+
+      <div className="space-y-6 rounded-3xl bg-white p-6">
+        <div className="space-y-2">
+          <Label htmlFor="import-source">Import source</Label>
+          <select
+            id="import-source"
+            value={activeTab}
+            onChange={(event) => setActiveTab(event.target.value as ImportTab)}
+            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 shadow-sm shadow-neutral-200/50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+          >
+            <option value="file">Backup File</option>
+            <option value="imap">IMAP</option>
+          </select>
         </div>
         {/* <Card className="m-2">
           <CardContent className="space-y-2 py-4"> */}
-        <div className="p-6 space-y-2">
-          <h2 className="font-semibold">Choose import sections</h2>
+        <div className="space-y-2">
+          <Label>Choose import sections</Label>
 
           <div className="relative">
             <button
@@ -231,7 +226,7 @@ export default function SettingsImportPage() {
             <CardContent>
               <form onSubmit={onFileSubmit} className="space-y-4">
                 <div className="space-y-2">
-                  <h2 className="font-semibold">Select Backup File</h2>
+                  <Label>Select Backup File</Label>
                   <input
                     id="import-files"
                     type="file"
@@ -240,7 +235,7 @@ export default function SettingsImportPage() {
                     onChange={(event) =>
                       setFiles(Array.from(event.target.files ?? []))
                     }
-                    className="block w-full rounded-md border border-neutral-200 bg-white px-3 py-2 text-sm shadow-sm shadow-neutral-200/50 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium"
+                    className="block w-full rounded-md border border-neutral-200 bg-white px-3 py-1 text-sm shadow-sm shadow-neutral-200/50 file:mr-3 file:rounded-md file:border-0 file:bg-neutral-100 file:px-3 file:py-1.5 file:text-sm file:font-medium"
                   />
                   <p className="text-xs leading-5 text-neutral-500">
                     Upload exported .eml or .mbox files. File exports do not
@@ -400,7 +395,7 @@ export default function SettingsImportPage() {
             </CardContent>
           </>
         )}
-      </Card>
+      </div>
     </div>
   );
 }

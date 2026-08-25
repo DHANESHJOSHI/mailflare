@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
 import { SkeletonRows } from "@/components/ui/skeleton";
@@ -19,7 +18,6 @@ import type { MessageFolderPageProps, MessageListRowProps } from "./types";
 import {
 	formatMessageListTimestamp,
 	getPageRange,
-	getMessageBadge,
 	getMessageParty,
 	getMessagePartyClassName,
 	getMessagePreview,
@@ -36,6 +34,7 @@ function MessageListRow({
 	selected,
 	active = false,
 	compact = false,
+	currentAccountName,
 	onSelectedChange,
 	dragMessageIds,
 }: MessageListRowProps) {
@@ -43,7 +42,7 @@ function MessageListRow({
 	const { openDraftComposer } = useCompose();
 	const unread = message.direction === "inbound" && !message.read;
 	const draggable = config.folder === "inbox" && message.direction === "inbound";
-	const party = getMessageParty(message, config.folder);
+	const party = getMessageParty(message, config.folder, currentAccountName);
 	const preview = getMessagePreview(message, config.folder);
 	const href = `${config.hrefPrefix}/${message.id}`;
 
@@ -102,7 +101,7 @@ function MessageListRow({
 		<>
 			<Icon className="h-4 w-4 text-neutral-300" />
 			<span className={getMessagePartyClassName(message, config.folder)}>
-				{getMessageParty(message, config.folder)}
+				{party}
 			</span>
 			<span className="truncate text-neutral-700">
 				<span className={unread ? "font-bold text-neutral-900" : ""}>
@@ -110,11 +109,14 @@ function MessageListRow({
 				</span>
 				<span className="text-neutral-500"> - {getMessagePreview(message, config.folder)}</span>
 			</span>
-			{config.showRowBadge !== false && (
-				<Badge variant={config.badgeVariant ?? "secondary"}>
-					{getMessageBadge(message, config.folder)}
-				</Badge>
-			)}
+			<time
+				dateTime={message.createdAt}
+				className={`min-w-[96px] whitespace-nowrap text-right text-xs ${
+					unread ? "font-semibold text-neutral-800" : "text-neutral-500"
+				}`}
+			>
+				{formatMessageListTimestamp(message.createdAt)}
+			</time>
 		</>
 	);
 
@@ -185,6 +187,7 @@ export function MessageFolderPage({
 	const titleTotal = folderCount?.total ?? total;
 	const titleUnread = folderCount?.unread ?? 0;
 	const mailboxAddress = getMailboxAddress(selectedMailbox);
+	const currentAccountName = selectedMailbox?.displayName ?? selectedMailbox?.localPart;
 	const pageRange = getPageRange(offset, messages.length, total);
 	const selectedMessages = selection?.selectedMessages ?? internalSelectedMessages;
 	const setSelectedMessages =
@@ -329,6 +332,7 @@ export function MessageFolderPage({
 						selected={selectedIds.includes(message.id)}
 						active={message.id === selectedMessageId}
 						compact={compact}
+						currentAccountName={currentAccountName}
 						onSelectedChange={updateSelectedMessage}
 						dragMessageIds={selectedIds.includes(message.id) ? selectedIds : [message.id]}
 					/>

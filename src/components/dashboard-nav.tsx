@@ -11,7 +11,6 @@ import {
   MailPlus,
   Plus,
   Send,
-  Settings,
   ShieldAlert,
   Trash2,
 } from "lucide-react";
@@ -29,6 +28,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMessageCounts } from "@/hooks/use-message-counts";
 import { authFetch } from "@/lib/auth/client";
+import { DEFAULT_FOLDER_COLOR, FOLDER_COLOR_OPTIONS } from "@/lib/folders/colors";
+import type { FolderColor } from "@/lib/folders/types";
 import { cn } from "@/lib/utils";
 import { NavItem } from "./components-nav";
 import type { NavLink } from "./components-nav-types";
@@ -46,15 +47,12 @@ const links = [
   { href: "/trash", label: "Trash", icon: Trash2 },
 ];
 
-const secondaryLinks = [
-  { href: "/settings", label: "Settings", icon: Settings },
-];
-
 export function DashboardNav({ className }: { className?: string }) {
   const { selectedMailbox, isLoading } = useSelectedMailbox();
   const { counts } = useMessageCounts(selectedMailbox?.id, !isLoading);
   const [folders, setFolders] = useState<CustomFolder[]>([]);
   const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderColor, setNewFolderColor] = useState<FolderColor>(DEFAULT_FOLDER_COLOR);
   const [addingFolder, setAddingFolder] = useState(false);
   const [folderDialogOpen, setFolderDialogOpen] = useState(false);
   const linksWithCounts: NavLink[] = links.map((link): NavLink => {
@@ -122,12 +120,17 @@ export function DashboardNav({ className }: { className?: string }) {
       const response = await authFetch("/api/folders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ mailboxId: selectedMailbox.id, name: newFolderName }),
+        body: JSON.stringify({
+          mailboxId: selectedMailbox.id,
+          name: newFolderName,
+          color: newFolderColor,
+        }),
       });
       if (!response.ok) return;
       const folder = (await response.json()) as CustomFolder;
       setFolders((items) => [...items, folder].sort((a, b) => a.name.localeCompare(b.name)));
       setNewFolderName("");
+      setNewFolderColor(DEFAULT_FOLDER_COLOR);
       setFolderDialogOpen(false);
     } finally {
       setAddingFolder(false);
@@ -173,6 +176,28 @@ export function DashboardNav({ className }: { className?: string }) {
                     autoFocus
                   />
                 </div>
+                <div className="space-y-2">
+                  <Label>Color</Label>
+                  <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Folder color">
+                    {FOLDER_COLOR_OPTIONS.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        role="radio"
+                        aria-checked={newFolderColor === option.value}
+                        aria-label={option.label}
+                        title={option.label}
+                        onClick={() => setNewFolderColor(option.value)}
+                        className={`h-8 w-8 rounded-full border-2 transition-transform hover:scale-110 ${
+                          newFolderColor === option.value
+                            ? "border-neutral-900 ring-2 ring-neutral-300 ring-offset-2"
+                            : "border-transparent"
+                        }`}
+                        style={{ backgroundColor: option.value }}
+                      />
+                    ))}
+                  </div>
+                </div>
                 <Button type="submit" disabled={addingFolder || !newFolderName.trim()}>
                   {addingFolder ? "Creating..." : "Create folder"}
                 </Button>
@@ -193,13 +218,13 @@ export function DashboardNav({ className }: { className?: string }) {
             href: `/folders/${folder.id}`,
             label: folder.name,
             icon: Folder,
+            iconColor: folder.color,
             count: counts.customFolders[folder.id]?.unread,
             onMessageDrop: (messageIds: string[]) => void moveMessagesToCustomFolder(messageIds, folder.id),
           }}
         />
       ))}
       <span className="flex-1" />
-      {secondaryLinks.map((link) => <NavItem link={link} key={link.href} />)}
       <SidebarFooter />
     </nav>
   );

@@ -2,6 +2,7 @@ export type Mailbox = {
 	id: string;
 	localPart: string;
 	displayName: string | null;
+	hasAvatar?: boolean;
 	domainId: string;
 	hostname: string;
 	type?: "personal" | "shared";
@@ -12,4 +13,10 @@ export type Mailbox = {
 export type Domain = {
 	id: string;
 	hostname: string;
+};
+
+export type CurrentAccountResponse = {
+	user?: {
+		name?: string | null;
+	};
 };

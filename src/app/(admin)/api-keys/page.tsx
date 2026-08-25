@@ -104,7 +104,7 @@ export default function ApiKeysPage() {
 						No API keys yet
 					</p>
 				)}
-				<div className="grid gap-3 md:grid-cols-2">
+				<div className="grid gap-3">
 					{(data?.apiKeys ?? []).map((key) => (
 						<div
 							key={key.id}

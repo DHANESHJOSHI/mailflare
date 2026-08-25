@@ -18,27 +18,16 @@ export default function DashboardLayout({
     <AuthGuard requireMailbox requireRole="admin">
       <MailboxProvider>
         <ComposeProvider>
-          <div className="grid h-[100dvh] grid-cols-[256px_minmax(0,1fr)] overflow-hidden bg-[#f6f8fc]">
-            <aside className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-gutter:stable]">
+          <div className="grid h-dvh grid-cols-[256px_minmax(0,1fr)] overflow-hidden bg-[#eef3fb]">
+            <aside className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 scrollbar-gutter-stable">
               <AdminNav />
             </aside>
             <div className="flex min-h-0 min-w-0 flex-col">
-              <header className="flex h-16 w-full shrink-0 items-center gap-4 pr-4 text-sm">
-                <div className="flex h-12 flex-1 items-center gap-3 rounded-full bg-[#eaf1fb] px-4 text-neutral-600">
-                  <Search className="h-5 w-5" />
-                  <span className="text-[15px]">Search mail</span>
-                </div>
-                
-                <Link
-                  href="/settings"
-                  className="flex h-10 w-10 items-center justify-center rounded-full text-neutral-600 hover:bg-neutral-200"
-                >
-                  <HelpCircle className="h-5 w-5" />
-                </Link>
+              <span className="fixed top-6 right-6">
                 <MailboxSelector />
-              </header>
-              <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain rounded-t-3xl bg-white px-12 py-8 [scrollbar-gutter:stable]">
-                {children}
+              </span>
+              <main className="min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain px-6 py-10 scrollbar-gutter-stable lg:px-12">
+                <div className="w-full max-w-3xl">{children}</div>
               </main>
             </div>
             <FloatingComposer />

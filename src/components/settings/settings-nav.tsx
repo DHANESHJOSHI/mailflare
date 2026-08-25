@@ -9,10 +9,10 @@ export function SettingsNav() {
 	const pathname = usePathname();
 
 	return (
-		<aside className="px-4 py-5 w-60">
-			<div className="sticky top-6 space-y-2 bg-neutral-100/60 p-4 rounded-2xl">
-				<h2 className="px-2 text-xs uppercase font-semibold text-neutral-400">Settings</h2>
-				<nav className="">
+		<aside className="min-h-full border-r border-blue-100/70 px-4 py-10 w-64">
+			<div className="sticky top-6 space-y-3">
+				<h2 className="px-4 text-xs font-semibold uppercase tracking-wide text-neutral-500">Settings</h2>
+				<nav className="space-y-1">
 					{settingsNavItems.map((item) => {
 						const active = isActiveSettingsPath(pathname, item.href);
 						return (
@@ -20,10 +20,10 @@ export function SettingsNav() {
 								key={item.href}
 								href={item.href}
 								className={cn(
-									"block rounded-lg px-2 py-1.5 text-sm font-medium transition-colors",
+									"block rounded-full px-4 py-2.5 text-sm font-medium transition-colors",
 									active
-										? "text-blue-700"
-										: "text-neutral-500 hover:bg-neutral-50 hover:text-neutral-900",
+										? "bg-blue-100 text-blue-900"
+										: "text-neutral-600 hover:bg-white/70 hover:text-neutral-900",
 								)}
 							>
 								{item.label}

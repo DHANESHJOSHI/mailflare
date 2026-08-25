@@ -54,6 +54,7 @@ export const mailboxes = sqliteTable(
 			.references(() => domains.id, { onDelete: "cascade" }),
 		localPart: text("local_part").notNull(),
 		displayName: text("display_name"),
+		avatarKey: text("avatar_key"),
 		type: text("type", { enum: ["personal", "shared"] }).notNull().default("personal"),
 		disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
 		createdAt: integer("created_at", { mode: "timestamp" })
@@ -100,6 +101,7 @@ export const contacts = sqliteTable(
 		source: text("source", { enum: ["manual", "inbound", "outbound"] })
 			.notNull()
 			.default("inbound"),
+		blocked: integer("blocked", { mode: "boolean" }).notNull().default(false),
 		lastSeenAt: integer("last_seen_at", { mode: "timestamp" }),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
@@ -122,6 +124,7 @@ export const folders = sqliteTable(
 			.notNull()
 			.references(() => mailboxes.id, { onDelete: "cascade" }),
 		name: text("name").notNull(),
+		color: text("color").notNull().default("#2563eb"),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()
 			.$defaultFn(() => new Date()),

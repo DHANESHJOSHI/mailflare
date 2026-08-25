@@ -70,7 +70,7 @@ export async function processInboundMessage(
 		subject: parsed.subject,
 		content: [parsed.text, parsed.html, snippet].filter(Boolean).join(" "),
 	});
-	await upsertContactFromAddress(env, {
+	const contact = await upsertContactFromAddress(env, {
 		userId: decision.mailbox.userId,
 		address: fromAddr,
 		source: "inbound",
@@ -115,6 +115,7 @@ export async function processInboundMessage(
 		messageId,
 		mailboxId: decision.mailbox.mailboxId,
 		from: fromAddr,
+		fromName: contact?.displayName ?? null,
 		subject: parsed.subject,
 	});
 	await dispatchWebhooks(env, decision.mailbox.userId, "message.inbound", {
@@ -170,7 +171,7 @@ export async function getMessageWithBodyForUser(env: CloudflareEnv, user: Sessio
 		.from(messageBodies)
 		.where(eq(messageBodies.messageId, messageId))
 		.limit(1);
-	const contactNames = await getMessageContactNames(env, user.id, message.fromAddr, message.toAddr);
+	const contactNames = await getMessageContactNames(env, message.userId, message.fromAddr, message.toAddr);
 	const attachments = await listMessageAttachments(env, messageId);
 	const unsubscribeUrl = await getUnsubscribeUrlFromRawR2Key(env, body?.rawR2Key ?? null);
 	return { message: { ...message, ...contactNames }, body, attachments, unsubscribeUrl };

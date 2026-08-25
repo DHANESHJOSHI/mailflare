@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_FOLDER_COLOR, FOLDER_COLOR_VALUES } from "@/lib/folders/colors";
 
 export const sendEmailSchema = z.object({
 	from: z.string().min(3).max(500),
@@ -108,6 +109,7 @@ export const updateMailboxSchema = z.object({
 export const folderSchema = z.object({
 	mailboxId: z.string().min(1),
 	name: z.string().trim().min(1).max(80),
+	color: z.enum(FOLDER_COLOR_VALUES).default(DEFAULT_FOLDER_COLOR),
 });
 
 export const updateProfileSchema = z.object({

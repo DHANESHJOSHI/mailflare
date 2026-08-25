@@ -21,6 +21,7 @@ export type MessageListRowProps = {
 	selected: boolean;
 	active?: boolean;
 	compact?: boolean;
+	currentAccountName?: string;
 	onSelectedChange: (messageId: string, selected: boolean) => void;
 	dragMessageIds: string[];
 };

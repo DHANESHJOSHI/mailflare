@@ -30,6 +30,7 @@ export function parseNewMessageEvent(value: string): NewMessageEvent | null {
 			messageId: payload.messageId,
 			mailboxId: payload.mailboxId,
 			from: payload.from,
+			fromName: typeof payload.fromName === "string" ? payload.fromName : null,
 			subject: typeof payload.subject === "string" ? payload.subject : null,
 		};
 	} catch {
@@ -47,7 +48,7 @@ export function showBrowserNewMessageNotification(event: NewMessageEvent): void 
 	}
 
 	const notification = new Notification(event.subject || "New email", {
-		body: `From ${event.from}`,
+		body: `From ${event.fromName ?? event.from}`,
 		icon: "/icon-96.png",
 		tag: event.messageId,
 	});

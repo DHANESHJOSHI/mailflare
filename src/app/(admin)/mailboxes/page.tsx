@@ -2,8 +2,8 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import Link from "next/link";
-import { useState } from "react";
-import { Mail, Plus } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
 	Dialog,
@@ -16,15 +16,30 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { CardGridSkeleton } from "@/components/page-skeletons";
+import { clearMailboxesCache } from "@/components/mailbox-provider-utils";
 import { authFetch } from "@/lib/auth/client";
-import type { Domain, Mailbox } from "./types";
+import type { CurrentAccountResponse, Domain, Mailbox } from "./types";
 import { getMailboxAddress, getMailboxName } from "./utils";
 
 export default function MailboxesPage() {
 	const qc = useQueryClient();
+	const [displayName, setDisplayName] = useState("");
 	const [localPart, setLocalPart] = useState("");
 	const [domainId, setDomainId] = useState("");
 	const [createOpen, setCreateOpen] = useState(false);
+
+	const account = useQuery({
+		queryKey: ["auth", "me"],
+		queryFn: async () => {
+			const res = await authFetch("/api/auth/me", { redirectOnUnauthorized: false });
+			return (await res.json()) as CurrentAccountResponse;
+		},
+	});
+
+	useEffect(() => {
+		if (!createOpen) return;
+		setDisplayName((currentName) => currentName || account.data?.user?.name?.trim() || "");
+	}, [account.data?.user?.name, createOpen]);
 
 	const domains = useQuery({
 		queryKey: ["domains"],
@@ -47,14 +62,16 @@ export default function MailboxesPage() {
 			const res = await authFetch("/api/mailboxes", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ domainId, localPart, displayName: localPart }),
+				body: JSON.stringify({ domainId, localPart, displayName: displayName.trim() }),
 			});
 			const json = (await res.json()) as { error?: string };
 			if (!res.ok) throw new Error(json.error ?? "Failed");
+			setDisplayName("");
 			setLocalPart("");
 			setDomainId("");
 		},
 		onSuccess: () => {
+			clearMailboxesCache();
 			setCreateOpen(false);
 			qc.invalidateQueries({ queryKey: ["mailboxes"] });
 		},
@@ -67,7 +84,7 @@ export default function MailboxesPage() {
 	return (
 		<div className="space-y-6">
 			<div className="flex items-center justify-between gap-4">
-				<h1 className="text-2xl font-semibold">Mailboxes</h1>
+				<h1 className="text-3xl font-medium">Mailboxes</h1>
 				<Dialog open={createOpen} onOpenChange={setCreateOpen}>
 					<DialogTrigger asChild>
 						<Button>
@@ -82,39 +99,46 @@ export default function MailboxesPage() {
 						</DialogHeader>
 						<div className="space-y-4">
 							<div className="space-y-2">
-								<Label>Domain</Label>
-								<select
-									className="w-full h-10 rounded-md border border-neutral-200 px-3 text-sm shadow-sm shadow-neutral-200/50 placeholder:text-neutral-500 focus-visible:outline-none focus-visible:border-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
-									value={domainId}
-									onChange={(event) => setDomainId(event.target.value)}
-								>
-									<option value="">Select domain</option>
-									{(domains.data?.domains ?? []).map((domain) => (
-										<option key={domain.id} value={domain.id}>
-											{domain.hostname}
-										</option>
-									))}
-								</select>
-							</div>
-							<div className="space-y-2 relative">
-								<Label>Username</Label>
+								<Label htmlFor="mailbox-name">Name</Label>
 								<Input
-									value={localPart}
-									onChange={(event) => setLocalPart(event.target.value)}
-									placeholder="support"
+									id="mailbox-name"
+									value={displayName}
+									onChange={(event) => setDisplayName(event.target.value)}
+									placeholder="Mailbox name"
 								/>
-								{domainId && (
-									<span className="absolute bottom-2.5 right-4 text-sm text-neutral-400">
-										@{domainMap.get(domainId)}
-									</span>
-								)}
+							</div>
+							<div className="space-y-2">
+								<Label htmlFor="mailbox-username">Email address</Label>
+								<div className="flex h-10 overflow-hidden rounded-md border border-neutral-200 bg-white shadow-sm shadow-neutral-200/50 focus-within:border-blue-600">
+									<Input
+										id="mailbox-username"
+										value={localPart}
+										onChange={(event) => setLocalPart(event.target.value)}
+										placeholder="support"
+										className="min-w-0 flex-1 rounded-none border-0 shadow-none focus-visible:border-0"
+									/>
+									<span className="flex items-center text-sm text-neutral-400">@</span>
+									<select
+										aria-label="Domain"
+										className="min-w-0 max-w-[55%] bg-transparent px-3 text-sm text-neutral-700 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
+										value={domainId}
+										onChange={(event) => setDomainId(event.target.value)}
+									>
+										<option value="">Select domain</option>
+										{(domains.data?.domains ?? []).map((domain) => (
+											<option key={domain.id} value={domain.id}>
+												{domain.hostname}
+											</option>
+										))}
+									</select>
+								</div>
 							</div>
 							{create.isError && (
 								<p className="text-sm text-red-600">{(create.error as Error).message}</p>
 							)}
 							<Button
 								onClick={() => create.mutate()}
-								disabled={!domainId || !localPart || create.isPending}
+								disabled={!displayName.trim() || !domainId || !localPart || create.isPending}
 							>
 								{create.isPending ? "Creating..." : "Create mailbox"}
 							</Button>
@@ -132,11 +156,11 @@ export default function MailboxesPage() {
 					<CardGridSkeleton />
 				)}
 				{!mailboxes.isLoading && (mailboxes.data?.mailboxes ?? []).length === 0 && (
-					<p className="rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-500">
+					<p className="rounded-2xl bg-white px-5 py-4 text-sm text-neutral-500">
 						No mailboxes yet
 					</p>
 				)}
-				<div className="grid gap-3 md:grid-cols-2">
+				<div className="grid gap-3">
 					{(mailboxes.data?.mailboxes ?? []).map((mailbox) => {
 						const mailboxWithHostname = {
 							...mailbox,
@@ -147,12 +171,20 @@ export default function MailboxesPage() {
 							<Link
 								key={mailbox.id}
 								href={`/mailboxes/${mailbox.id}`}
-								className="group flex min-h-24 items-start gap-3 rounded-lg border border-neutral-200 bg-white p-4 shadow-sm shadow-neutral-100 transition hover:border-blue-200 hover:bg-[#f8fbff] hover:shadow-md"
+								className="group flex items-start gap-4 rounded-3xl bg-white p-5 transition-colors hover:bg-blue-50/10"
 							>
-								<span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-neutral-100 text-neutral-600 group-hover:bg-blue-50 group-hover:text-blue-700">
-									<Mail className="h-5 w-5" />
+								<span className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-blue-100 text-sm font-semibold text-blue-700">
+									{getMailboxName(mailboxWithHostname).trim().charAt(0).toUpperCase() || "?"}
+									{mailbox.hasAvatar && (
+										<img
+											src={`/api/mailboxes/${mailbox.id}/avatar`}
+											alt={`${getMailboxName(mailboxWithHostname)} profile`}
+											className="absolute inset-0 h-full w-full object-cover"
+											onError={(event) => event.currentTarget.remove()}
+										/>
+									)}
 								</span>
-								<span className="min-w-0 space-y-1">
+								<span className="min-w-0">
 									<span className="flex min-w-0 items-center gap-2">
 										<span className="block truncate text-sm font-semibold text-neutral-900">
 											{getMailboxName(mailboxWithHostname)}

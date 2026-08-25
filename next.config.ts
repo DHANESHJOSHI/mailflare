@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
 	turbopack: {
 		root: import.meta.dirname,
 	},
+  allowedDevOrigins: ['mail.dev'],
 	typescript: {
     // !! WARN !!
     // Dangerously allow production builds to successfully complete

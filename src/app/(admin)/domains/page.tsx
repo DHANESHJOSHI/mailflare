@@ -89,7 +89,7 @@ export default function DomainsPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Domains</h1>
+          <h1 className="text-3xl font-medium">Domains</h1>
           <p className="mt-1 text-sm text-neutral-500">
             Domains must be on your Cloudflare account. Adding a domain enables
             Email Routing and Email Sending DNS automatically.
@@ -143,11 +143,11 @@ export default function DomainsPage() {
           <CardGridSkeleton />
         )}
         {!isLoading && (data?.domains ?? []).length === 0 && (
-          <p className="rounded-lg border border-neutral-200 bg-white px-4 py-3 text-sm text-neutral-500">
+          <p className="rounded-2xl bg-white px-5 py-4 text-sm text-neutral-500">
             No domains yet
           </p>
         )}
-        <div className="grid gap-3 md:grid-cols-2">
+        <div className="grid gap-3">
           {(data?.domains ?? []).map((d) => {
             const dns = data?.dns?.[d.id];
             return (
@@ -163,11 +163,11 @@ export default function DomainsPage() {
         </div>
       </section>
       {dnsView && (
-        <Card>
-          <CardHeader>
+        <Card className="rounded-3xl border-0 bg-white p-6">
+          <CardHeader className="py-0">
             <CardTitle>DNS — {dnsView.domain.hostname}</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 text-xs no-font-mono">
+          <CardContent className="space-y-4 pt-5 text-xs no-font-mono">
             <div>
               <p className="font-sans font-medium text-sm mb-2">
                 Email Routing

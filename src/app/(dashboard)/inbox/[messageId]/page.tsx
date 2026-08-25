@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Cloud, ExternalLink } from "lucide-react";
 import dayjs from "dayjs";
 import { MarkAsRead } from "@/components/mark-read";
+import { useSelectedMailbox } from "@/components/mailbox-provider";
+import { ContactDetailsTrigger } from "@/components/contacts/contact-details";
 import { MessageActions } from "@/components/message-actions/message-actions";
 import { MessageAttachmentViewer } from "@/components/message-attachment-viewer";
 import { MessageAttachmentCard } from "@/components/message-attachment-card";
@@ -24,6 +26,7 @@ import { sanitizeEmailHtml } from "./email-html-sanitizer";
 
 export default function MessageDetailPage() {
   const params = useParams<{ messageId: string }>();
+  const { selectedMailbox } = useSelectedMailbox();
   const messageId = params.messageId;
   const [data, setData] = useState<MessageDetailResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -61,7 +64,12 @@ export default function MessageDetailPage() {
   }
 
   const { message, body, attachments = [] } = data;
-  const { fromName, fromAddress, toName } = getMessageHeaderParties(message);
+  const currentAccountName =
+    selectedMailbox?.displayName ?? selectedMailbox?.localPart;
+  const { fromName, fromAddress, toName } = getMessageHeaderParties(
+    message,
+    currentAccountName,
+  );
   const ownAddress =
     message.direction === "inbound" ? message.toAddr : message.fromAddr;
   const bodyDisplay = getMessageBodyDisplay(
@@ -113,10 +121,31 @@ export default function MessageDetailPage() {
         <div className="mb-6 flex items-start justify-between border-b border-neutral-100 pb-5">
           <div>
             <p className="text-sm text-neutral-900">
-              <b>{fromName}</b>{" "}
+              <b>
+                {message.direction === "inbound" ? (
+                  <ContactDetailsTrigger
+                    mailboxId={message.mailboxId}
+                    address={message.fromAddr}
+                    name={fromName}
+                  />
+                ) : (
+                  fromName
+                )}
+              </b>{" "}
               <span className="text-neutral-500">&lt;{fromAddress}&gt;</span>
             </p>
-            <p className="text-xs text-neutral-500">to {toName}</p>
+            <p className="text-xs text-neutral-500">
+              to{" "}
+              {message.direction === "outbound" ? (
+                <ContactDetailsTrigger
+                  mailboxId={message.mailboxId}
+                  address={message.toAddr}
+                  name={toName}
+                />
+              ) : (
+                toName
+              )}
+            </p>
           </div>
           <p className="text-xs text-neutral-400">
             {dayjs(message.createdAt).format("MMM DD, YYYY, hh:mmA")}

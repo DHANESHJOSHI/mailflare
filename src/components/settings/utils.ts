@@ -1,4 +1,5 @@
 import type { MailboxOption } from "@/components/mailbox-provider";
+import { clearMailboxesCache } from "@/components/mailbox-provider-utils";
 import { authFetch } from "@/lib/auth/client";
 import type { CurrentMailboxFormResponse } from "./types";
 
@@ -17,12 +18,14 @@ export async function updateCurrentMailboxName(id: string, displayName: string):
 	if (!res.ok || !data.mailbox) {
 		throw new Error(typeof data.error === "string" ? data.error : "Failed to update mailbox");
 	}
+	clearMailboxesCache();
 
 	return {
 		id: data.mailbox.id,
 		localPart: data.mailbox.localPart,
 		hostname: data.mailbox.hostname,
 		displayName: data.mailbox.displayName,
+		hasAvatar: data.mailbox.hasAvatar,
 		isPrimary: data.mailbox.isPrimary,
 	};
 }

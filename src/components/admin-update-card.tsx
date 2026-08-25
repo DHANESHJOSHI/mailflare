@@ -51,8 +51,8 @@ export function AdminUpdateCard() {
 	}
 
 	return (
-		<Card className="max-w-5xl">
-			<CardHeader className="flex-row items-center gap-4 space-y-0">
+		<Card className="rounded-3xl border-0 bg-white p-6">
+			<CardHeader className="flex-row items-center gap-4 space-y-0 py-0">
 				<div className="flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 text-blue-700">
 					<RefreshCw className="h-5 w-5" />
 				</div>
@@ -63,7 +63,7 @@ export function AdminUpdateCard() {
 					</p>
 				</div>
 			</CardHeader>
-			<CardContent className="flex items-center gap-4">
+			<CardContent className="flex items-center gap-4 pt-5">
 				<Button type="button" onClick={handleUpdate} disabled={isChecking || isPending || !status?.available}>
 					<RefreshCw className={isPending ? "h-4 w-4 animate-spin" : "h-4 w-4"} />
 					{isPending ? "Starting update..." : "Update Mailflare"}
