@@ -6,7 +6,6 @@ import { users } from "@/db/schema";
 import { verifyPassword } from "@/lib/auth/password";
 import { createSession, SESSION_COOKIE } from "@/lib/auth/session";
 import { loginSchema } from "@/lib/validators";
-import { userHasAccessibleMailboxes } from "@/lib/user";
 import { allowLoginAttempt } from "@/lib/auth/rate-limit";
 import { verifyTurnstileToken } from "@/lib/auth/turnstile";
 import { readJsonBody } from "@/lib/http/request";
@@ -45,13 +44,12 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: "Account disabled" }, { status: 403 });
 	}
 
-	const hasMailboxes = await userHasAccessibleMailboxes(env, user);
 	const token = await createSession(env, user.id);
 	await recordAuthActivity(env, { action: "auth.login", userId: user.id, request });
 	const response = NextResponse.json({
 		ok: true,
 		token,
-		redirect: hasMailboxes ? "/inbox" : "/setup",
+		redirect: "/inbox",
 	});
 	response.headers.set("Cache-Control", "no-store");
 	response.cookies.set(SESSION_COOKIE, token, {

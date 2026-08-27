@@ -9,6 +9,7 @@ import { SkeletonRows } from "@/components/ui/skeleton";
 import { useCompose } from "@/components/compose/compose-context";
 import { useMailSearch } from "@/components/mail-search/mail-search-context";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
+import { usePageLoading } from "@/components/page-loading";
 import { useMessageCounts } from "@/hooks/use-message-counts";
 import { useMessages } from "@/hooks/use-messages";
 import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
@@ -179,6 +180,7 @@ export function MessageFolderPage({
 		offset,
 	}, !mailboxesLoading, config.folderId);
 	const { counts } = useMessageCounts(selectedMailbox?.id, !mailboxesLoading);
+	usePageLoading(mailboxesLoading || isLoading);
 	const headerIcons = config.headerIcons ?? [];
 	const hasActiveFilters = !!query.trim();
 	const folderCount = config.folderId

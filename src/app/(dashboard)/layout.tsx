@@ -9,6 +9,7 @@ import { MailSearchInput } from "@/components/mail-search/mail-search-input";
 import { MailSearchProvider } from "@/components/mail-search/mail-search-context";
 import { MailboxProvider } from "@/components/mailbox-provider";
 import { MailboxSelector } from "@/components/mailbox-selector";
+import { LicenseIndicator } from "@/components/license-indicator";
 import { DashboardNav } from "@/components/dashboard-nav";
 
 export default function DashboardLayout({
@@ -17,11 +18,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <AuthGuard requireMailbox>
+    <AuthGuard>
       <MailboxProvider>
         <ComposeProvider>
           <MailSearchProvider>
-            <div className="grid h-[100dvh] grid-cols-[256px_minmax(0,1fr)] overflow-hidden bg-[#f6f8fc]">
+            <div className="grid h-[100dvh] grid-cols-[240px_minmax(0,1fr)] overflow-hidden bg-[#f6f8fc]">
               <aside className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-gutter:stable]">
                 <DashboardNav />
               </aside>
@@ -34,6 +35,7 @@ export default function DashboardLayout({
                   >
                     <HelpCircle className="h-5 w-5" />
                   </Link>
+                  <LicenseIndicator />
                   <MailboxSelector />
                 </header>
                 <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl bg-white [scrollbar-gutter:stable]">

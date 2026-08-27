@@ -17,6 +17,15 @@ export type Domain = {
 
 export type CurrentAccountResponse = {
 	user?: {
+		id?: string;
+		email?: string;
 		name?: string | null;
 	};
+};
+
+export type MailboxOwner = {
+	id: string;
+	email: string;
+	name: string;
+	role: "admin" | "user";
 };

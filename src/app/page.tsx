@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { authFetch, getClientSessionToken } from "@/lib/auth/client";
 import { getHomeActions, heroMessages, sidebarItems } from "./utils";
 import { ArrowRight, Inbox, Mail, Search, ShieldCheck } from "lucide-react";
+import { useBranding } from "@/components/branding-provider";
 
 export default function HomePage() {
+  const branding = useBranding();
   const [hasUser, setHasUser] = useState(false);
 
   useEffect(() => {
@@ -37,9 +39,9 @@ export default function HomePage() {
           className="flex items-center gap-3"
           aria-label="Email Platform home"
         >
-          <img src="/icon-96.png" height={32} width={32} />
+          <img src={branding.iconUrl} height={32} width={32} alt="" />
           <span className="text-base font-semibold tracking-tight">
-            Mailflare
+            {branding.appName}
           </span>
         </Link>
 

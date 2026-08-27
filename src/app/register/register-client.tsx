@@ -216,7 +216,7 @@ export function RegisterClient() {
           )}
         </div>
       ) : showDomainStep ? (
-        <form onSubmit={onDomainSubmit} className="space-y-5">
+        <form method="post" onSubmit={onDomainSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="domain">Primary domain</Label>
             <Input
@@ -244,7 +244,7 @@ export function RegisterClient() {
           </Button>
         </form>
       ) : (
-        <form onSubmit={onSubmit} className="space-y-5">
+        <form method="post" onSubmit={onSubmit} className="space-y-5">
           <div className="space-y-2">
             <Label htmlFor="username">Username</Label>
             <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 relative">

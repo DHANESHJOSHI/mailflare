@@ -2,18 +2,18 @@ import { NextResponse } from "next/server";
 import { and, eq } from "drizzle-orm";
 import { getEnv } from "@/lib/cloudflare";
 import { getDb } from "@/db";
-import { domains, mailboxes } from "@/db/schema";
+import { domains, mailboxes, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/cookies";
 import { newId } from "@/lib/ids";
 import { mailboxSchema } from "@/lib/validators";
 import { ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
-import { listAccessibleMailboxes } from "@/lib/mailboxes/access";
+import { ensurePersonalMailbox } from "./utils";
 
 export async function GET(request: Request) {
 	const env = getEnv();
 	const user = await requireUser(env, request);
 	const db = getDb(env);
-	const rows = await listAccessibleMailboxes(db, user);
+	const rows = await ensurePersonalMailbox(env, db, user);
 	return NextResponse.json({ mailboxes: rows });
 }
 
@@ -27,12 +27,28 @@ export async function POST(request: Request) {
 
 	const db = getDb(env);
 	const mailboxType = "personal";
+	const ownerUserId = parsed.data.ownerUserId ?? user.id;
+	if (ownerUserId !== user.id) {
+		if (user.role !== "admin") {
+			return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+		}
+		const [owner] = await db
+			.select({ id: users.id })
+			.from(users)
+			.where(and(eq(users.id, ownerUserId), eq(users.createdByUserId, user.id)))
+			.limit(1);
+		if (!owner) return NextResponse.json({ error: "Account not found" }, { status: 404 });
+	}
 	const [domain] = await db
 		.select()
 		.from(domains)
 		.where(eq(domains.id, parsed.data.domainId))
 		.limit(1);
-	if (!domain || domain.userId !== user.id) {
+	const canUseDomain = domain && (
+		domain.userId === user.id ||
+		(user.canManageMailboxes && !!user.createdByUserId && domain.userId === user.createdByUserId)
+	);
+	if (!canUseDomain) {
 		return NextResponse.json({ error: "Domain not found" }, { status: 404 });
 	}
 
@@ -57,7 +73,7 @@ export async function POST(request: Request) {
 	const id = newId("mbx");
 	await db.insert(mailboxes).values({
 		id,
-		userId: user.id,
+		userId: ownerUserId,
 		domainId: parsed.data.domainId,
 		localPart,
 		displayName: parsed.data.displayName,

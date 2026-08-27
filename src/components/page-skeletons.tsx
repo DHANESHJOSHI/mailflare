@@ -1,25 +1,8 @@
 import { Skeleton, SkeletonRows } from "@/components/ui/skeleton";
-import { MailOpen } from "lucide-react";
+import { LoadingTransition } from "@/components/loading-transition";
 
 export function PageSkeleton() {
-	return (
-		<div className="space-y-7 p-8 flex flex-row items-center justify-center h-dvh w-dvw flex-1">
-			<div className="space-y-2">
-				<MailOpen size={86} className="animate-pulse text-blue-600/10" />
-				<Skeleton className="h-7 w-48" />
-				<Skeleton className="h-4 w-80 max-w-full" />
-			</div>
-			{/* <div className="grid gap-4 md:grid-cols-2">
-				{Array.from({ length: 4 }, (_, index) => (
-					<div key={index} className="rounded-lg border border-neutral-200 p-5">
-						<Skeleton className="h-10 w-10 rounded-lg" />
-						<Skeleton className="mt-4 h-4 w-32" />
-						<Skeleton className="mt-2 h-3 w-4/5" />
-					</div>
-				))}
-			</div> */}
-		</div>
-	);
+	return <LoadingTransition ready />;
 }
 
 export function ListPageSkeleton() {

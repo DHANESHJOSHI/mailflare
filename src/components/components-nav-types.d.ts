@@ -6,6 +6,7 @@ export type NavLink = {
 	icon?: LucideIcon;
 	iconColor?: string;
 	primary?: boolean;
+	preloadMessages?: boolean;
 	count?: number;
 	onMessageDrop?: (messageIds: string[]) => void;
 };

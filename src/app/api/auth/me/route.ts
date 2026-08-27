@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
-import { userHasMailboxes } from "@/lib/user";
+import { hasPrimaryDomain, userHasMailboxes } from "@/lib/user";
 
 export async function GET(request: Request) {
 	const env = getEnv();
@@ -10,7 +10,16 @@ export async function GET(request: Request) {
 		return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 	}
 
-	const hasMailboxes = await userHasMailboxes(env, user.id);
+	let hasMailboxes = false;
+	let isSetup = true;
+	try {
+		[hasMailboxes, isSetup] = await Promise.all([
+			userHasMailboxes(env, user.id),
+			hasPrimaryDomain(env),
+		]);
+	} catch {
+		// Authentication remains valid when optional mailbox/setup metadata is unavailable.
+	}
 	return NextResponse.json({
 		user: {
 			id: user.id,
@@ -18,8 +27,10 @@ export async function GET(request: Request) {
 			name: user.name,
 			resetEmail: user.resetEmail,
 			role: user.role,
+			canManageMailboxes: user.canManageMailboxes,
 			hasAvatar: !!user.avatarKey,
 		},
 		hasMailboxes,
+		isSetup,
 	});
 }

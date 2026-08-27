@@ -21,15 +21,25 @@ export function LoginClient() {
     setLoading(true);
     setError(null);
 
-    const { ok, data } = await submitLogin(new FormData(e.currentTarget));
-    setLoading(false);
-    if (!ok) {
-      setError(data.error ?? "Login failed");
+    try {
+      const { ok, data } = await submitLogin(new FormData(e.currentTarget));
+      if (!ok) {
+        setError(data.error ?? "Login failed");
+        setTurnstileReset((value) => value + 1);
+        return;
+      }
+      router.replace(data.redirect ?? "/inbox");
+      router.refresh();
+    } catch (error) {
+      setError(
+        error instanceof DOMException && error.name === "TimeoutError"
+          ? "Login timed out. Please try again."
+          : "Unable to reach the login service. Please try again.",
+      );
       setTurnstileReset((value) => value + 1);
-      return;
+    } finally {
+      setLoading(false);
     }
-    router.replace(data.redirect ?? "/inbox");
-    router.refresh();
   }
 
   return (
@@ -38,7 +48,7 @@ export function LoginClient() {
       title="Sign in"
       description="Open your mailbox and continue from the same inbox workspace."
     >
-      <form onSubmit={onSubmit} className="space-y-5">
+      <form method="post" onSubmit={onSubmit} className="space-y-5">
         <div className="space-y-2">
           <Label htmlFor="email">Email</Label>
           <Input

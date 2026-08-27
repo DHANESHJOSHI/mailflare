@@ -12,6 +12,7 @@ import { MessageActions } from "@/components/message-actions/message-actions";
 import { MessageAttachmentViewer } from "@/components/message-attachment-viewer";
 import { MessageAttachmentCard } from "@/components/message-attachment-card";
 import { MessageDetailSkeleton } from "@/components/page-skeletons";
+import { usePageLoading } from "@/components/page-loading";
 import { PreviousMessage } from "@/components/previous-message";
 import { getMessageBackHref } from "@/components/message-actions/utils";
 import type { MessageAttachment, MessageDetailResponse } from "./types";
@@ -32,6 +33,7 @@ export default function MessageDetailPage() {
   const [loading, setLoading] = useState(true);
   const [previewAttachment, setPreviewAttachment] =
     useState<MessageAttachment | null>(null);
+  usePageLoading(loading);
 
   useEffect(() => {
     let cancelled = false;

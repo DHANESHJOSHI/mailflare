@@ -10,6 +10,7 @@ export const users = sqliteTable("users", {
 	avatarKey: text("avatar_key"),
 	role: text("role", { enum: ["admin", "user"] }).notNull().default("user"),
 	disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
+	canManageMailboxes: integer("can_manage_mailboxes", { mode: "boolean" }).notNull().default(false),
 	createdByUserId: text("created_by_user_id").references((): AnySQLiteColumn => users.id, { onDelete: "set null" }),
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
@@ -327,6 +328,32 @@ export const backupSettings = sqliteTable("backup_settings", {
 		.$defaultFn(() => new Date()),
 });
 
+export const appSettings = sqliteTable("app_settings", {
+	id: text("id").primaryKey(),
+	appName: text("app_name").notNull().default("Mailflare"),
+	iconKey: text("icon_key"),
+	updatedAt: integer("updated_at", { mode: "timestamp" })
+		.notNull()
+		.$defaultFn(() => new Date()),
+});
+
+export const licenseSettings = sqliteTable("license_settings", {
+	id: text("id").primaryKey(),
+	instanceId: text("instance_id").notNull().unique(),
+	instanceUrl: text("instance_url"),
+	licenseKeyHash: text("license_key_hash"),
+	plan: text("plan", { enum: ["community", "pro", "team"] }).notNull().default("community"),
+	state: text("state", { enum: ["inactive", "active", "invalid", "expired", "deactivated"] })
+		.notNull()
+		.default("inactive"),
+	features: text("features").notNull().default("[]"),
+	activatedAt: integer("activated_at", { mode: "timestamp" }),
+	validatedAt: integer("validated_at", { mode: "timestamp" }),
+	updatedAt: integer("updated_at", { mode: "timestamp" })
+		.notNull()
+		.$defaultFn(() => new Date()),
+});
+
 export const backups = sqliteTable(
 	"backups",
 	{
@@ -371,4 +398,6 @@ export const schema = {
 	auditLogs,
 	backupSettings,
 	backups,
+	appSettings,
+	licenseSettings,
 };

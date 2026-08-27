@@ -1,7 +1,7 @@
-import { CurrentMailboxForm } from "@/components/settings/current-mailbox-form";
+import { AccountSettings } from "@/components/settings/account-settings";
 
 export default function SettingsPage() {
 	return (
-		<CurrentMailboxForm />
+		<AccountSettings />
 	);
 }

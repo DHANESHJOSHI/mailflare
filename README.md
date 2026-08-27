@@ -134,6 +134,11 @@ Required setup values:
 - `CF_AID` — optional unless your token can access multiple accounts.
 - `CF_EMAIL_WORKER_NAME` — must match the deployed Worker name. If the one-click deploy flow asks for a different Worker name, enter that same value here.
 
+Activate a purchased Pro or Team key from **Admin → Licenses**. Mailflare sends the key directly to
+Paymug and stores only a one-way key hash with the activation state. Without an active license,
+Mailflare uses the original app name, icon, and favicon and custom branding remains unavailable.
+Apply all D1 migrations before activating a license.
+
 ### Database backup workflow binding
 
 Manual and scheduled database backups require the `DATABASE_BACKUP_WORKFLOW` binding declared in

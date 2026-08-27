@@ -8,7 +8,8 @@ import { summariseDns, type DnsStatusSummary } from "@/lib/dns-status";
 export async function GET(request: NextRequest) {
 	const env = getEnv();
 	const user = await requireUser(env, request);
-	const domains = await listUserDomains(env, user.id);
+	const domainOwnerId = user.canManageMailboxes && user.createdByUserId ? user.createdByUserId : user.id;
+	const domains = await listUserDomains(env, domainOwnerId);
 
 	const includeDns = request.nextUrl.searchParams.get("includeDns") === "true";
 

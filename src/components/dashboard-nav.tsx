@@ -36,18 +36,20 @@ import type { NavLink } from "./components-nav-types";
 import type { CustomFolder } from "./dashboard-nav-types";
 import { getFolderNavCount, moveMessagesToCustomFolder, moveMessagesToSystemFolder } from "./dashboard-nav-utils";
 import { SidebarFooter } from "./sidebar-footer";
+import { useBranding } from "./branding-provider";
 
 const links = [
   { href: "/compose", label: "Compose", icon: MailPlus, primary: true },
-  { href: "/inbox", label: "Inbox", icon: Inbox },
-  { href: "/sent", label: "Sent", icon: Send },
-  { href: "/drafts", label: "Drafts", icon: FileText },
-  { href: "/archived", label: "Archived", icon: Archive },
-  { href: "/spam", label: "Spam", icon: ShieldAlert },
-  { href: "/trash", label: "Trash", icon: Trash2 },
+  { href: "/inbox", label: "Inbox", icon: Inbox, preloadMessages: true },
+  { href: "/sent", label: "Sent", icon: Send, preloadMessages: true },
+  { href: "/drafts", label: "Drafts", icon: FileText, preloadMessages: true },
+  { href: "/archived", label: "Archived", icon: Archive, preloadMessages: true },
+  { href: "/spam", label: "Spam", icon: ShieldAlert, preloadMessages: true },
+  { href: "/trash", label: "Trash", icon: Trash2, preloadMessages: true },
 ];
 
 export function DashboardNav({ className }: { className?: string }) {
+	const branding = useBranding();
   const { selectedMailbox, isLoading } = useSelectedMailbox();
   const { counts } = useMessageCounts(selectedMailbox?.id, !isLoading);
   const [folders, setFolders] = useState<CustomFolder[]>([]);
@@ -143,8 +145,8 @@ export function DashboardNav({ className }: { className?: string }) {
         href="/inbox"
         className="mb-3 flex h-10 items-center gap-3 px-3 text-neutral-600"
       >
-        <img src="/icon-96.png" height={28} width={28} />
-        <span className="text-lg font-semibold text-neutral-800">Mailflare</span>
+        <img src={branding.iconUrl} height={28} width={28} alt="" />
+        <span className="truncate text-lg font-semibold text-neutral-800">{branding.appName}</span>
       </Link>
       {linksWithCounts.map((link, i) => <NavItem link={link} key={`nav-${link.href || i}`} />)}
       <div className="mt-2 flex h-8 items-center justify-between px-3">
@@ -218,6 +220,7 @@ export function DashboardNav({ className }: { className?: string }) {
             href: `/folders/${folder.id}`,
             label: folder.name,
             icon: Folder,
+            preloadMessages: true,
             iconColor: folder.color,
             count: counts.customFolders[folder.id]?.unread,
             onMessageDrop: (messageIds: string[]) => void moveMessagesToCustomFolder(messageIds, folder.id),

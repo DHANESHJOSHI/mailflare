@@ -12,6 +12,19 @@ export type ProfileFormResponse = {
 	error?: unknown;
 };
 
+export type AccountSettingsResponse = {
+	user?: {
+		email: string;
+		name: string;
+		resetEmail: string | null;
+	};
+	error?: unknown;
+};
+
+export type ChangePasswordResponse = {
+	error?: unknown;
+};
+
 export type ProfileAvatarSessionResponse = {
 	user?: {
 		hasAvatar?: boolean;

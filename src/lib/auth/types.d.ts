@@ -8,6 +8,7 @@ export type SessionUser = {
 	name: string;
 	role: UserRole;
 	disabled: boolean;
+	canManageMailboxes: boolean;
 	createdByUserId: string | null;
 	createdAt: Date;
 };

@@ -60,9 +60,17 @@ export const domainSchema = z.object({
 
 export const mailboxSchema = z.object({
 	domainId: z.string().min(1),
+	ownerUserId: z.string().min(1).optional(),
 	localPart: z.string().min(1).max(64),
 	displayName: z.string().optional(),
 	type: z.enum(["personal", "shared"]).optional(),
+});
+
+export const updateManagedAccountSchema = z.object({
+	name: z.string().trim().min(1).max(100),
+	role: z.enum(["admin", "user"]),
+	disabled: z.boolean(),
+	canManageMailboxes: z.boolean(),
 });
 
 export const createAccountSchema = z.object({
@@ -74,6 +82,13 @@ export const createAccountSchema = z.object({
 		(value) => (typeof value === "string" ? value.trim() : value),
 		z.string().email().or(z.literal("")).optional().transform((value) => value || null),
 	),
+});
+
+export const createUserAccountSchema = z.object({
+	username: z.string().trim().min(1).max(64).regex(/^[a-zA-Z0-9._%+-]+$/),
+	domainId: z.string().min(1),
+	password: z.string().min(8).max(128),
+	role: z.enum(["admin", "user"]).default("user"),
 });
 
 export const updateAccountSchema = z.object({
@@ -118,6 +133,11 @@ export const updateProfileSchema = z.object({
 		(value) => (typeof value === "string" ? value.trim() : value),
 		z.string().email().or(z.literal("")).transform((value) => value || null),
 	),
+});
+
+export const changePasswordSchema = z.object({
+	currentPassword: z.string().min(1),
+	newPassword: z.string().min(8).max(128),
 });
 
 export const routingRuleSchema = z.object({

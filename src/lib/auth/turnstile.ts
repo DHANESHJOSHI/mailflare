@@ -14,16 +14,22 @@ export async function verifyTurnstileToken(
 	if (!secret) return true;
 	if (typeof token !== "string" || !token.trim() || token.length > 2048) return false;
 
-	const response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-		method: "POST",
-		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({
-			secret,
-			response: token,
-			remoteip: request.headers.get("cf-connecting-ip") ?? undefined,
-			idempotency_key: newId("ts"),
-		}),
-	});
+	let response: Response;
+	try {
+		response = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+			method: "POST",
+			headers: { "Content-Type": "application/json" },
+			signal: AbortSignal.timeout(10_000),
+			body: JSON.stringify({
+				secret,
+				response: token,
+				remoteip: request.headers.get("cf-connecting-ip") ?? undefined,
+				idempotency_key: newId("ts"),
+			}),
+		});
+	} catch {
+		return false;
+	}
 
 	if (!response.ok) return false;
 	const result = (await response.json()) as TurnstileResponse;

@@ -10,8 +10,16 @@ export type Account = {
 	resetEmail: string | null;
 	role: "admin" | "user";
 	disabled?: boolean;
+	hasAvatar?: boolean;
+	canManageMailboxes?: boolean;
 	createdAt: string;
 	mailboxId?: string | null;
 	localPart?: string | null;
 	hostname?: string | null;
+};
+
+export type AccountResponse = {
+	accounts?: Account[];
+	account?: Account;
+	error?: string;
 };

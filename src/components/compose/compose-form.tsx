@@ -37,6 +37,10 @@ export function ComposeForm({
 	const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const attachmentInput = useRef<HTMLInputElement | null>(null);
 
+	useEffect(() => {
+		if (!selectedMailbox && mailboxes.length === 1) setSelectedMailbox(mailboxes[0]);
+	}, [mailboxes, selectedMailbox, setSelectedMailbox]);
+
 	const fromAddr = useMemo(
 		() =>
 			selectedMailbox

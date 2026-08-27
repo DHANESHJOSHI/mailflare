@@ -5,6 +5,7 @@ export async function submitLogin(form: FormData): Promise<{ ok: boolean; data: 
 	const res = await fetch("/api/auth/login", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
+		signal: AbortSignal.timeout(20_000),
 		body: JSON.stringify({
 			email: form.get("email"),
 			password: form.get("password"),

@@ -3,6 +3,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { clearMailboxClientState } from "@/components/mailbox-provider-utils";
+import { BrandingProvider } from "@/components/branding-provider";
 import { NewMessagePopup } from "@/components/new-message-popup";
 import { useMessagePolling } from "@/hooks/use-message-polling";
 import { clearMessageClientState } from "@/hooks/utils";
@@ -38,13 +39,15 @@ export function Providers({ children }: { children: React.ReactNode }) {
 
 	return (
 		<QueryClientProvider client={client}>
-			{children}
-			{realtime.notification && (
-				<NewMessagePopup
-					notification={realtime.notification}
-					onDismiss={realtime.dismissNotification}
-				/>
-			)}
+			<BrandingProvider>
+				{children}
+				{realtime.notification && (
+					<NewMessagePopup
+						notification={realtime.notification}
+						onDismiss={realtime.dismissNotification}
+					/>
+				)}
+			</BrandingProvider>
 		</QueryClientProvider>
 	);
 }

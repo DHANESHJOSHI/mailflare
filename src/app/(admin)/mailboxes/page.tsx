@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { CardGridSkeleton } from "@/components/page-skeletons";
 import { clearMailboxesCache } from "@/components/mailbox-provider-utils";
 import { authFetch } from "@/lib/auth/client";
-import type { CurrentAccountResponse, Domain, Mailbox } from "./types";
+import type { CurrentAccountResponse, Domain, Mailbox, MailboxOwner } from "./types";
 import { getMailboxAddress, getMailboxName } from "./utils";
 
 export default function MailboxesPage() {
@@ -26,6 +26,7 @@ export default function MailboxesPage() {
 	const [displayName, setDisplayName] = useState("");
 	const [localPart, setLocalPart] = useState("");
 	const [domainId, setDomainId] = useState("");
+	const [ownerUserId, setOwnerUserId] = useState("");
 	const [createOpen, setCreateOpen] = useState(false);
 
 	const account = useQuery({
@@ -39,7 +40,18 @@ export default function MailboxesPage() {
 	useEffect(() => {
 		if (!createOpen) return;
 		setDisplayName((currentName) => currentName || account.data?.user?.name?.trim() || "");
-	}, [account.data?.user?.name, createOpen]);
+		setOwnerUserId((currentId) => currentId || account.data?.user?.id || "");
+	}, [account.data?.user?.id, account.data?.user?.name, createOpen]);
+
+	const accounts = useQuery({
+		queryKey: ["accounts", "mailbox-owners"],
+		queryFn: async () => {
+			const res = await authFetch("/api/accounts");
+			if (!res.ok) return { accounts: [] as MailboxOwner[] };
+			return (await res.json()) as { accounts: MailboxOwner[] };
+		},
+		enabled: createOpen,
+	});
 
 	const domains = useQuery({
 		queryKey: ["domains"],
@@ -62,13 +74,14 @@ export default function MailboxesPage() {
 			const res = await authFetch("/api/mailboxes", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ domainId, localPart, displayName: displayName.trim() }),
+				body: JSON.stringify({ domainId, ownerUserId, localPart, displayName: displayName.trim() }),
 			});
 			const json = (await res.json()) as { error?: string };
 			if (!res.ok) throw new Error(json.error ?? "Failed");
 			setDisplayName("");
 			setLocalPart("");
 			setDomainId("");
+			setOwnerUserId("");
 		},
 		onSuccess: () => {
 			clearMailboxesCache();
@@ -80,6 +93,15 @@ export default function MailboxesPage() {
 	const domainMap = new Map(
 		(domains.data?.domains ?? []).map((d) => [d.id, d.hostname]),
 	);
+	const mailboxOwners = [...(accounts.data?.accounts ?? [])];
+	if (account.data?.user?.id && !mailboxOwners.some((owner) => owner.id === account.data?.user?.id)) {
+		mailboxOwners.unshift({
+			id: account.data.user.id,
+			email: account.data.user.email ?? "",
+			name: account.data.user.name ?? account.data.user.email ?? "Current account",
+			role: "admin",
+		});
+	}
 
 	return (
 		<div className="space-y-6">
@@ -98,6 +120,25 @@ export default function MailboxesPage() {
 							<DialogDescription>Add an address and provision its routing rule automatically.</DialogDescription>
 						</DialogHeader>
 						<div className="space-y-4">
+							<div className="space-y-2">
+								<Label htmlFor="mailbox-owner">Account</Label>
+								<select
+									id="mailbox-owner"
+									value={ownerUserId}
+									onChange={(event) => {
+										const owner = mailboxOwners.find((item) => item.id === event.target.value);
+										setOwnerUserId(event.target.value);
+										if (owner) setDisplayName(owner.name);
+									}}
+									className="flex h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm shadow-sm shadow-neutral-200/50 focus-visible:border-blue-600 focus-visible:outline-none"
+								>
+									{mailboxOwners.map((owner) => (
+										<option key={owner.id} value={owner.id}>
+											{owner.name} ({owner.email})
+										</option>
+									))}
+								</select>
+							</div>
 							<div className="space-y-2">
 								<Label htmlFor="mailbox-name">Name</Label>
 								<Input
@@ -138,7 +179,7 @@ export default function MailboxesPage() {
 							)}
 							<Button
 								onClick={() => create.mutate()}
-								disabled={!displayName.trim() || !domainId || !localPart || create.isPending}
+								disabled={!ownerUserId || !displayName.trim() || !domainId || !localPart || create.isPending}
 							>
 								{create.isPending ? "Creating..." : "Create mailbox"}
 							</Button>
