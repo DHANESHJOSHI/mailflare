@@ -7,6 +7,7 @@ import { BrandingProvider } from "@/components/branding-provider";
 import { NewMessagePopup } from "@/components/new-message-popup";
 import { useMessagePolling } from "@/hooks/use-message-polling";
 import { clearMessageClientState } from "@/hooks/utils";
+import { clearMessageDetailCache } from "@/lib/messages/detail-cache";
 import { AUTH_SESSION_CHANGED_EVENT } from "@/lib/auth/client";
 
 export function Providers({ children }: { children: React.ReactNode }) {
@@ -31,6 +32,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
 			client.clear();
 			clearMailboxClientState();
 			clearMessageClientState();
+			clearMessageDetailCache();
 		}
 
 		window.addEventListener(AUTH_SESSION_CHANGED_EVENT, resetUserScopedState);

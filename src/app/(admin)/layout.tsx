@@ -9,6 +9,7 @@ import { MailboxProvider } from "@/components/mailbox-provider";
 import { MailboxSelector } from "@/components/mailbox-selector";
 import { LicenseIndicator } from "@/components/license-indicator";
 import { AdminNav } from "@/components/admin-nav";
+import { SidebarProvider } from "@/components/sidebar-state";
 
 export default function DashboardLayout({
   children,
@@ -17,9 +18,10 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard requireMailbox requireRole="admin">
+      <SidebarProvider expandedWidth={256}>
       <MailboxProvider>
         <ComposeProvider>
-          <div className="grid h-dvh grid-cols-[256px_minmax(0,1fr)] overflow-hidden bg-[#eef3fb]">
+          <div className="grid h-dvh grid-cols-[var(--sidebar-width)_minmax(0,1fr)] overflow-hidden bg-[#eef3fb] transition-[grid-template-columns] duration-200">
             <aside className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 scrollbar-gutter-stable">
               <AdminNav />
             </aside>
@@ -36,6 +38,7 @@ export default function DashboardLayout({
           </div>
         </ComposeProvider>
       </MailboxProvider>
+      </SidebarProvider>
     </AuthGuard>
   );
 }

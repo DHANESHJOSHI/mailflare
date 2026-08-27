@@ -15,6 +15,7 @@ import { useMessages } from "@/hooks/use-messages";
 import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import { setMessageDragData } from "@/lib/messages/drag-utils";
 import { BulkMessageToolbar } from "./bulk-message-toolbar";
+import { MessageNavigationProgress, useMessageNavigation } from "./message-navigation";
 import type { MessageFolderPageProps, MessageListRowProps } from "./types";
 import {
 	formatMessageListTimestamp,
@@ -46,6 +47,7 @@ function MessageListRow({
 	const party = getMessageParty(message, config.folder, currentAccountName);
 	const preview = getMessagePreview(message, config.folder);
 	const href = `${config.hrefPrefix}/${message.id}`;
+	const navigation = useMessageNavigation(href, message.id);
 
 	if (compact && config.folder !== "drafts") {
 		return (
@@ -63,6 +65,7 @@ function MessageListRow({
 					setMessageDragData(event.dataTransfer, { messageIds: dragMessageIds });
 				}}
 			>
+				<MessageNavigationProgress progress={navigation.progress} />
 				<input
 					type="checkbox"
 					checked={selected}
@@ -70,7 +73,7 @@ function MessageListRow({
 					className="mt-1 h-4 w-4 rounded border-neutral-300"
 					aria-label={`Select message from ${party}`}
 				/>
-				<Link href={href} className="min-w-0">
+				<Link href={href} onClick={navigation.onNavigate} className="min-w-0">
 					<span className="flex items-baseline justify-between gap-3">
 						<span className={getMessagePartyClassName(message, config.folder)}>
 							{party}
@@ -147,6 +150,7 @@ function MessageListRow({
 				setMessageDragData(event.dataTransfer, { messageIds: dragMessageIds });
 			}}
 		>
+			<MessageNavigationProgress progress={navigation.progress} />
 			<input
 				type="checkbox"
 				checked={selected}
@@ -154,7 +158,7 @@ function MessageListRow({
 				className="h-4 w-4 rounded border-neutral-300"
 				aria-label="Select message"
 			/>
-			<Link href={href} className="contents">
+			<Link href={href} onClick={navigation.onNavigate} className="contents">
 				{content}
 			</Link>
 		</div>

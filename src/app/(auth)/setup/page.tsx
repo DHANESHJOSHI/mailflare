@@ -5,8 +5,8 @@ import { SESSION_COOKIE, getUserFromSession } from "@/lib/auth/session";
 import { hasAdminAccount } from "@/lib/auth/setup";
 import { getEnv } from "@/lib/cloudflare";
 import { getPrimaryDomain } from "@/lib/user";
-import { OnboardingClient } from "@/app/onboarding/onboarding-client";
-import { RegisterClient } from "@/app/register/register-client";
+import { OnboardingClient } from "@/app/(auth)/onboarding/onboarding-client";
+import { RegisterClient } from "@/app/(auth)/register/register-client";
 
 export const dynamic = "force-dynamic";
 

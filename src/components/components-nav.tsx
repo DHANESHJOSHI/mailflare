@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { usePathname, useRouter } from "next/navigation";
 import { getMessageDragData } from "@/lib/messages/drag-utils";
 import { useSelectedMailbox } from "./mailbox-provider";
+import { useSidebar } from "./sidebar-state";
 import { useCompose } from "./compose/compose-context";
 import { preloadMailboxPage, waitForNavigationProgress } from "./components-nav-utils";
 import type { NavLink } from "./components-nav-types";
@@ -16,6 +17,7 @@ export function NavItem({ link }:{ link: NavLink }) {
   const router = useRouter();
   const { openComposer } = useCompose();
   const { selectedMailbox } = useSelectedMailbox();
+  const { minimal } = useSidebar();
   const [dragOver, setDragOver] = useState(false);
   const [navigationProgress, setNavigationProgress] = useState<number | null>(null);
 
@@ -35,10 +37,12 @@ export function NavItem({ link }:{ link: NavLink }) {
   const active = pathname === link.href || pathname.startsWith(`${link.href}/`);
   const classes = cn(
     "flex h-9 items-center gap-3 rounded-r-full text-sm font-medium text-neutral-700 transition-colors hover:bg-blue-50",
+	minimal && "mx-auto w-10 justify-center rounded-full px-0",
     active && "bg-blue-100 text-blue-900",
     dragOver && "bg-blue-50 text-blue-900 ring-1 ring-blue-200",
     link.primary &&
       "mb-3 h-12 w-fit rounded-2xl bg-blue-100 px-5 text-blue-950 shadow-sm hover:bg-blue-200",
+	link.primary && minimal && "h-11 w-11 rounded-2xl px-0",
   );
   const dropProps = link.onMessageDrop
     ? {
@@ -64,11 +68,12 @@ export function NavItem({ link }:{ link: NavLink }) {
         type="button"
         onClick={openComposer}
         className={classes}
+		title={minimal ? link.label : undefined}
         {...dropProps}
       >
         <Icon className="h-4 w-4" style={{ color: link.iconColor }} />
-        <span className="flex-1">{link.label}</span>
-        {typeof link.count === "number" && link.count > 0 && (
+		{!minimal && <span className="flex-1">{link.label}</span>}
+        {!minimal && typeof link.count === "number" && link.count > 0 && (
           <span className="ml-auto mr-3 rounded-full px-2 py-0.5 text-sm font-semibold text-neutral-700">
             {link.count > 99 ? "99+" : link.count}
           </span>
@@ -113,12 +118,13 @@ export function NavItem({ link }:{ link: NavLink }) {
       <Link
         href={link.href}
         onClick={navigate}
-        className={cn("-ml-3 pl-6", classes)}
+		title={minimal ? link.label : undefined}
+        className={cn(!minimal && "-ml-3 pl-6", classes)}
         {...dropProps}
       >
         <Icon className="h-4 w-4" style={{ color: link.iconColor }} />
-        <span className="flex-1">{link.label}</span>
-        {typeof link.count === "number" && link.count > 0 && (
+		{!minimal && <span className="flex-1">{link.label}</span>}
+        {!minimal && typeof link.count === "number" && link.count > 0 && (
           <span className="ml-auto mr-3 rounded-full px-2 py-0.5 text-sm font-semibold text-neutral-700">
             {link.count > 99 ? "99+" : link.count}
           </span>

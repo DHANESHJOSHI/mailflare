@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import {
   DatabaseBackup,
   Globe2,
@@ -16,6 +14,7 @@ import { cn } from "@/lib/utils";
 import { NavItem } from "./components-nav";
 import { SidebarFooter } from "./sidebar-footer";
 import { useBranding } from "./branding-provider";
+import { SidebarHeader } from "./sidebar-header";
 
 const links = [
   { href: "/admin", label: "Overview", icon: Settings },
@@ -31,18 +30,11 @@ const links = [
 ];
 
 export function AdminNav({ className }: { className?: string }) {
-  const pathname = usePathname();
   const branding = useBranding();
 
   return (
     <nav className={cn("flex min-h-full flex-col gap-1", className)}>
-      <Link
-        href="/inbox"
-        className="mb-3 flex h-10 items-center gap-3 px-3 text-neutral-600"
-      >
-        <img src={branding.iconUrl} height={28} width={28} alt="" />
-        <span className="text-lg font-semibold text-neutral-800">Admin</span>
-      </Link>
+      <SidebarHeader href="/inbox" label="Admin" />
       {links
         .filter((link) => link.href !== "/branding" || branding.canCustomizeBranding)
         .map((link) => <NavItem link={link} key={link.href} />)}

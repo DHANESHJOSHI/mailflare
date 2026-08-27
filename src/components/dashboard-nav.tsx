@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import {
@@ -36,7 +35,8 @@ import type { NavLink } from "./components-nav-types";
 import type { CustomFolder } from "./dashboard-nav-types";
 import { getFolderNavCount, moveMessagesToCustomFolder, moveMessagesToSystemFolder } from "./dashboard-nav-utils";
 import { SidebarFooter } from "./sidebar-footer";
-import { useBranding } from "./branding-provider";
+import { SidebarHeader } from "./sidebar-header";
+import { useSidebar } from "./sidebar-state";
 
 const links = [
   { href: "/compose", label: "Compose", icon: MailPlus, primary: true },
@@ -49,7 +49,7 @@ const links = [
 ];
 
 export function DashboardNav({ className }: { className?: string }) {
-	const branding = useBranding();
+  const { minimal } = useSidebar();
   const { selectedMailbox, isLoading } = useSelectedMailbox();
   const { counts } = useMessageCounts(selectedMailbox?.id, !isLoading);
   const [folders, setFolders] = useState<CustomFolder[]>([]);
@@ -141,15 +141,9 @@ export function DashboardNav({ className }: { className?: string }) {
 
   return (
     <nav className={cn("flex min-h-full flex-col gap-1", className)}>
-      <Link
-        href="/inbox"
-        className="mb-3 flex h-10 items-center gap-3 px-3 text-neutral-600"
-      >
-        <img src={branding.iconUrl} height={28} width={28} alt="" />
-        <span className="truncate text-lg font-semibold text-neutral-800">{branding.appName}</span>
-      </Link>
+      <SidebarHeader href="/inbox" />
       {linksWithCounts.map((link, i) => <NavItem link={link} key={`nav-${link.href || i}`} />)}
-      <div className="mt-2 flex h-8 items-center justify-between px-3">
+	  {!minimal && <div className="mt-2 flex h-8 items-center justify-between px-3">
         <span className="text-xs font-medium uppercase tracking-wide text-neutral-400">Folders</span>
         {selectedMailbox && (
           <Dialog open={folderDialogOpen} onOpenChange={setFolderDialogOpen}>
@@ -207,8 +201,8 @@ export function DashboardNav({ className }: { className?: string }) {
             </DialogContent>
           </Dialog>
         )}
-      </div>
-      {folders.length === 0 && (
+	  </div>}
+      {!minimal && folders.length === 0 && (
         <div className="mx-3 rounded-lg border border-dashed border-neutral-200 px-3 py-3 text-xs text-neutral-400">
           No folders yet
         </div>

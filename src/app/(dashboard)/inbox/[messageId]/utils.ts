@@ -1,4 +1,4 @@
-import { authFetch } from "@/lib/auth/client";
+import { fetchCachedMessageDetail } from "@/lib/messages/detail-cache";
 import { getEmailAddress } from "@/lib/email/address";
 import { getDisplayNameForAddress } from "@/lib/contacts/utils";
 import { htmlToReadableText, splitRepliedEmailContent } from "@/lib/email/reply-content-utils";
@@ -6,8 +6,7 @@ import type { Message } from "@/hooks/types";
 import type { MessageAttachment, MessageBodyDisplay, MessageDetailResponse } from "./types";
 
 export async function fetchMessageDetail(messageId: string): Promise<MessageDetailResponse> {
-	const response = await authFetch(`/api/messages/${messageId}`);
-	return (await response.json()) as MessageDetailResponse;
+	return (await fetchCachedMessageDetail(messageId)) as MessageDetailResponse;
 }
 
 export function getMessageHeaderParties(message: Message, currentAccountName?: string) {

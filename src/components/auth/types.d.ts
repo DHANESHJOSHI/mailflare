@@ -11,6 +11,6 @@ export type AuthShellProps = {
 	title: string;
 	description?: ReactNode;
 	children: ReactNode;
-	footer: ReactNode;
+	footer?: ReactNode;
 	steps?: AuthShellStep[];
 };
