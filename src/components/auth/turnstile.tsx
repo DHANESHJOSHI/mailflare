@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Input } from "@/components/ui/input";
 
 type TurnstileWindow = Window & {
 	turnstile?: {
@@ -89,7 +90,7 @@ export function TurnstileField({
 	return (
 		<div className="space-y-2">
 			<div ref={containerRef} />
-			<input type="hidden" name={name} value={token} />
+			<Input type="hidden" name={name} value={token} />
 		</div>
 	);
 }

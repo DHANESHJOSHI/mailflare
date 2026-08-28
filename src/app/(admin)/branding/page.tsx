@@ -84,7 +84,7 @@ export default function BrandingPage() {
 						</div>
 						<div className="space-y-2">
 							<Label>App icon</Label>
-							<input ref={inputRef} type="file" accept={BRANDING_ICON_ACCEPT} className="hidden" onChange={(event) => pickIcon(event.target.files?.[0] ?? null)} />
+							<Input ref={inputRef} type="file" accept={BRANDING_ICON_ACCEPT} className="hidden" onChange={(event) => pickIcon(event.target.files?.[0] ?? null)} />
 							<button type="button" onClick={() => inputRef.current?.click()} className="flex items-center gap-4 rounded-2xl border border-dashed border-neutral-300 p-4 text-left hover:bg-neutral-50">
 								<img src={preview ?? branding.iconUrl} alt="App icon preview" className="h-16 w-16 rounded-2xl object-cover" />
 								<span className="text-sm text-neutral-600"><ImagePlus className="mb-1 h-5 w-5" />Choose PNG, JPEG, WebP, or GIF<br /><span className="text-xs text-neutral-400">Maximum 2 MB</span></span>

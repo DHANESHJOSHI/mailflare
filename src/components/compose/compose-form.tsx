@@ -291,7 +291,7 @@ export function ComposeForm({
 					</div>
 				)}
 				<div className="flex items-center gap-3 border-t border-neutral-100 px-4 py-3">
-					<input
+					<Input
 						ref={attachmentInput}
 						type="file"
 						multiple

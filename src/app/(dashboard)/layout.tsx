@@ -24,8 +24,8 @@ export default function DashboardLayout({
       <MailboxProvider>
         <ComposeProvider>
           <MailSearchProvider>
-            <div className="grid h-[100dvh] grid-cols-[var(--sidebar-width)_minmax(0,1fr)] overflow-hidden bg-[#f6f8fc] transition-[grid-template-columns] duration-200">
-              <aside className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 [scrollbar-gutter:stable]">
+            <div className="grid h-dvh grid-cols-[var(--sidebar-width)_minmax(0,1fr)] overflow-hidden bg-[#f6f8fc] transition-[grid-template-columns] duration-200">
+              <aside className="min-h-0 overflow-y-auto overscroll-contain px-3 py-4 scrollbar-gutter-stable">
                 <DashboardNav />
               </aside>
               <div className="flex min-h-0 min-w-0 flex-col">
@@ -40,7 +40,7 @@ export default function DashboardLayout({
                   <LicenseIndicator />
                   <MailboxSelector />
                 </header>
-                <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl bg-white [scrollbar-gutter:stable]">
+                <main className="min-h-0 flex-1 overflow-y-auto overscroll-contain rounded-tl-3xl bg-white scrollbar-gutter-stable">
                   {children}
                 </main>
               </div>

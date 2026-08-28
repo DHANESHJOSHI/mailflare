@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip } from "@/components/ui/tooltip";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { useCompose } from "@/components/compose/compose-context";
@@ -66,8 +67,7 @@ function MessageListRow({
 				}}
 			>
 				<MessageNavigationProgress progress={navigation.progress} />
-				<input
-					type="checkbox"
+				<Checkbox
 					checked={selected}
 					onChange={(event) => onSelectedChange(message.id, event.target.checked)}
 					className="mt-1 h-4 w-4 rounded border-neutral-300"
@@ -127,8 +127,7 @@ function MessageListRow({
 	if (config.folder === "drafts") {
 		return (
 			<div className={className}>
-				<input
-					type="checkbox"
+				<Checkbox
 					checked={selected}
 					onChange={(event) => onSelectedChange(message.id, event.target.checked)}
 					className="h-4 w-4 rounded border-neutral-300"
@@ -151,8 +150,7 @@ function MessageListRow({
 			}}
 		>
 			<MessageNavigationProgress progress={navigation.progress} />
-			<input
-				type="checkbox"
+			<Checkbox
 				checked={selected}
 				onChange={(event) => onSelectedChange(message.id, event.target.checked)}
 				className="h-4 w-4 rounded border-neutral-300"
@@ -267,8 +265,7 @@ export function MessageFolderPage({
 			<div className={`flex h-14 shrink-0 items-center justify-between border-b border-neutral-200 ${compact ? "px-4" : "px-6"}`}>
 				<div className="flex items-center gap-3 w-full">
 					<Tooltip label="Select all visible messages">
-						<input
-							type="checkbox"
+						<Checkbox
 							checked={allVisibleSelected}
 							disabled={messages.length === 0}
 							onChange={(event) => toggleAllVisible(event.target.checked)}

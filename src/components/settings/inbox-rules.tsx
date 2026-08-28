@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import type { InboxRule, InboxRuleInput } from "./inbox-rules-types";
 import {
   createInboxRule,
@@ -206,7 +207,7 @@ export function InboxRules() {
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="matchField">Field</Label>
-                <select
+                <Select
                   id="matchField"
                   className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
                   value={matchField}
@@ -219,11 +220,11 @@ export function InboxRules() {
                   <option value="email">Email address</option>
                   <option value="content">Content</option>
                   <option value="title">Title</option>
-                </select>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="matchOperator">Match</Label>
-                <select
+                <Select
                   id="matchOperator"
                   className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
                   value={matchOperator}
@@ -233,7 +234,7 @@ export function InboxRules() {
                 >
                   <option value="contains">Contains</option>
                   <option value="exact">Exact match</option>
-                </select>
+                </Select>
               </div>
             </div>
             <div className="space-y-2">
@@ -249,7 +250,7 @@ export function InboxRules() {
             </div>
             <div className="space-y-2">
               <Label htmlFor="destination">Destination</Label>
-              <select
+              <Select
                 id="destination"
                 className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
                 value={destination}
@@ -263,7 +264,7 @@ export function InboxRules() {
                     {folder.name}
                   </option>
                 ))}
-              </select>
+              </Select>
             </div>
             {save.isError && (
               <p className="text-sm text-red-600">{save.error.message}</p>

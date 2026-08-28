@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { Folder, Server, Upload } from "lucide-react";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Card,
   CardContent,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { importMessageFiles } from "@/components/settings/import-messages-utils";
 import type {
   ImapFormState,
@@ -168,7 +170,7 @@ export default function SettingsImportPage() {
       <div className="space-y-6 rounded-3xl bg-white p-6">
         <div className="space-y-2">
           <Label htmlFor="import-source">Import source</Label>
-          <select
+          <Select
             id="import-source"
             value={activeTab}
             onChange={(event) => setActiveTab(event.target.value as ImportTab)}
@@ -176,7 +178,7 @@ export default function SettingsImportPage() {
           >
             <option value="file">Backup File</option>
             <option value="imap">IMAP</option>
-          </select>
+          </Select>
         </div>
         {/* <Card className="m-2">
           <CardContent className="space-y-2 py-4"> */}
@@ -200,8 +202,7 @@ export default function SettingsImportPage() {
                     key={option.value}
                     className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedSections.includes(option.value)}
                       onChange={(event) =>
                         toggleSection(option.value, event.target.checked)
@@ -227,7 +228,7 @@ export default function SettingsImportPage() {
               <form onSubmit={onFileSubmit} className="space-y-4">
                 <div className="space-y-2">
                   <Label>Select Backup File</Label>
-                  <input
+                  <Input
                     id="import-files"
                     type="file"
                     accept=".eml,.mbox,.mbx,message/rfc822,application/mbox"
@@ -349,8 +350,7 @@ export default function SettingsImportPage() {
                     />
                   </div>
                   <label className="flex items-end gap-2 pb-2 text-sm text-neutral-700">
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={imapForm.secure}
                       onChange={(event) =>
                         setImapForm({

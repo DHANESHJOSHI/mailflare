@@ -1,6 +1,7 @@
 "use client";
 
 import { Search, X } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { useMailSearch } from "./mail-search-context";
 
 export function MailSearchInput() {
@@ -9,11 +10,11 @@ export function MailSearchInput() {
 	return (
 		<div className="flex h-12 flex-1 items-center gap-3 rounded-full bg-[#eaf1fb] px-4 text-neutral-600">
 			<Search className="h-5 w-5 shrink-0" />
-			<input
+			<Input
 				value={query}
 				onChange={(event) => setQuery(event.target.value)}
 				placeholder='Search mail'
-				className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-neutral-800 outline-none placeholder:text-neutral-500"
+				className="h-full min-w-0 flex-1 bg-transparent text-[15px] text-neutral-800 outline-none! shadow-none! border-none! placeholder:text-neutral-500"
 			/>
 			{query && (
 				<button

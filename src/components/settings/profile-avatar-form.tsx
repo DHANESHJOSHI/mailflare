@@ -8,6 +8,7 @@ import {
 	getProfileAvatarUrl,
 } from "@/lib/profile/avatar-client";
 import { dispatchMailboxAvatarChanged } from "@/lib/mailboxes/avatar-client";
+import { Input } from "@/components/ui/input";
 import type { ProfileAvatarFormProps, ProfileAvatarSessionResponse } from "./types";
 import {
 	getMailboxProfileAvatarUrl,
@@ -84,7 +85,7 @@ export function ProfileAvatarForm({
 
 	return (
 		<div className="flex flex-col items-start gap-2">
-			<input
+			<Input
 				ref={inputRef}
 				type="file"
 				accept={PROFILE_AVATAR_ACCEPT}

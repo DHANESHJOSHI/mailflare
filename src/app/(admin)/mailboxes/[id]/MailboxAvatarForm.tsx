@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Camera, LoaderCircle, User } from "lucide-react";
 import { dispatchMailboxAvatarChanged } from "@/lib/mailboxes/avatar-client";
+import { Input } from "@/components/ui/input";
 import type { MailboxAvatarFormProps } from "./types";
 import {
 	getMailboxAvatarUrl,
@@ -58,7 +59,7 @@ export default function MailboxAvatarForm({
 
 	return (
 		<div className="flex flex-col items-start gap-2">
-			<input
+			<Input
 				ref={inputRef}
 				type="file"
 				accept={MAILBOX_AVATAR_ACCEPT}

@@ -7,6 +7,7 @@ import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { Input } from "@/components/ui/input";
 import type { ImportMessagesProps, ImportMessagesResult } from "./import-messages-types";
 import { getImportSummary, importMessageFiles } from "./import-messages-utils";
 
@@ -51,7 +52,7 @@ export function ImportMessages({ destination, sourceLabel }: ImportMessagesProps
 				<form onSubmit={onSubmit} className="space-y-4">
 					<div className="space-y-2">
 						<Label htmlFor="mail-import">Mail export files</Label>
-						<input
+						<Input
 							id="mail-import"
 							type="file"
 							accept=".eml,.mbox,.mbx,message/rfc822,application/mbox"

@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { LicenseStatus } from "@/lib/licenses/types";
 import type { ActivatableLicensePlan, LicenseAction } from "./types";
@@ -111,7 +112,7 @@ export function LicenseActivation() {
 				{!hasActivation && (
 					<div className="space-y-2">
 						<Label htmlFor="licensePlan">Product</Label>
-						<select
+						<Select
 							id="licensePlan"
 							value={selectedPlan}
 							onChange={(event) => setSelectedPlan(event.target.value as ActivatableLicensePlan)}
@@ -120,7 +121,7 @@ export function LicenseActivation() {
 						>
 							<option value="pro">Pro</option>
 							<option value="team">Team</option>
-						</select>
+						</Select>
 					</div>
 				)}
 				<div className="space-y-2">

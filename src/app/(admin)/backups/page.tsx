@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { SkeletonRows } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import type { BackupItem, BackupSettings } from "./types";
@@ -127,7 +128,7 @@ export default function BackupsPage() {
                   <div className="grid gap-4">
                     <div className="space-y-2">
                       <Label htmlFor="schedule-type">Frequency</Label>
-                      <select
+                      <Select
                         id="schedule-type"
                         value={settings.scheduleType}
                         onChange={(event) => {
@@ -149,13 +150,13 @@ export default function BackupsPage() {
                         <option value="daily">Daily</option>
                         <option value="weekly">Selected day of week</option>
                         <option value="monthly">Selected day of month</option>
-                      </select>
+                      </Select>
                     </div>
 
                     {settings.scheduleType === "weekly" && (
                       <div className="space-y-2">
                         <Label htmlFor="weekday">Day of week</Label>
-                        <select
+                        <Select
                           id="weekday"
                           value={settings.scheduleValue ?? 1}
                           onChange={(event) =>
@@ -171,7 +172,7 @@ export default function BackupsPage() {
                               {day.label}
                             </option>
                           ))}
-                        </select>
+                        </Select>
                       </div>
                     )}
 
