@@ -29,3 +29,8 @@ export type MailboxOwner = {
 	name: string;
 	role: "admin" | "user";
 };
+
+export type MailboxesResponse = {
+	mailboxes: Mailbox[];
+	canCreateShared: boolean;
+};

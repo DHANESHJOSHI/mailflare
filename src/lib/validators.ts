@@ -71,6 +71,10 @@ export const updateManagedAccountSchema = z.object({
 	role: z.enum(["admin", "user"]),
 	disabled: z.boolean(),
 	canManageMailboxes: z.boolean(),
+	forwardingEmail: z.preprocess(
+		(value) => (typeof value === "string" ? value.trim() : value),
+		z.string().email().or(z.literal("")).optional().transform((value) => value || null),
+	),
 });
 
 export const createAccountSchema = z.object({
@@ -130,6 +134,10 @@ export const folderSchema = z.object({
 export const updateProfileSchema = z.object({
 	name: z.string().trim().min(1).max(100),
 	resetEmail: z.preprocess(
+		(value) => (typeof value === "string" ? value.trim() : value),
+		z.string().email().or(z.literal("")).transform((value) => value || null),
+	),
+	forwardingEmail: z.preprocess(
 		(value) => (typeof value === "string" ? value.trim() : value),
 		z.string().email().or(z.literal("")).transform((value) => value || null),
 	),

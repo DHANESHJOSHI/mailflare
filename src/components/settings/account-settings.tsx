@@ -57,6 +57,8 @@ export function AccountSettings() {
 					<ProfileForm
 						initialName={user.name}
 						initialResetEmail={user.resetEmail ?? ""}
+						initialForwardingEmail={user.forwardingEmail ?? ""}
+						canForwardEmail={user.canForwardEmail}
 						email={user.email}
 					/>
 				</CardContent>

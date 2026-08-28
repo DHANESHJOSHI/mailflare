@@ -10,3 +10,10 @@ export type MailboxAccessResponseItem = {
 	permission: "read_only" | "send_as" | "send_on_behalf" | "full_access";
 	createdAt: string;
 };
+
+export type MailboxAccessAccountItem = {
+	id: string;
+	email: string;
+	name: string;
+	role: "admin" | "user";
+};

@@ -144,7 +144,9 @@ Apply all D1 migrations before activating a license.
 Manual and scheduled database backups require the `DATABASE_BACKUP_WORKFLOW` binding declared in
 `wrangler.jsonc`. If the backup page reports that the binding is missing, deploy the complete Worker
 with `npm run deploy`; `next dev` and source-only updates may not provision new Cloudflare bindings.
-The backup also requires `CF_AID`, `D1_DATABASE_ID`, and `D1_BACKUP_TOKEN` at runtime.
+The backup also requires `CF_AID` and `D1_DATABASE_ID` at runtime. It uses `D1_BACKUP_TOKEN` when
+configured, otherwise it reuses `CF_TOKEN`; whichever token is used must be allowed to export the D1
+database.
 
 ### Dashboard updates
 

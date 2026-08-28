@@ -166,7 +166,12 @@ export function MailboxSelector() {
 	const selectedAvatarUrl = selectedMailbox
 		? selectedMailboxAvatarUrl ?? `/api/mailboxes/${selectedMailbox.id}/avatar`
 		: avatarUrl;
-	const otherMailboxes = mailboxes.filter((mailbox) => mailbox.id !== selectedMailbox?.id);
+	const otherPersonalMailboxes = mailboxes.filter(
+		(mailbox) => mailbox.id !== selectedMailbox?.id && mailbox.type !== "shared",
+	);
+	const otherSharedMailboxes = mailboxes.filter(
+		(mailbox) => mailbox.id !== selectedMailbox?.id && mailbox.type === "shared",
+	);
 	const adminActive = isAdminPath(pathname);
 
 	async function logout() {
@@ -220,12 +225,36 @@ export function MailboxSelector() {
 						</div>
 					</div>
 
-					{otherMailboxes.length > 0 && (
+					{otherPersonalMailboxes.length > 0 && (
 						<div className="mt-2 rounded-[22px] bg-white/55 p-1">
 							<p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
 								Other accounts
 							</p>
-							{otherMailboxes.map((mailbox) => {
+							{otherPersonalMailboxes.map((mailbox) => {
+								const mailboxCount = counts.mailboxes.find((count) => count.mailboxId === mailbox.id);
+								return (
+									<MailboxAccountRow
+										key={mailbox.id}
+										mailbox={mailbox}
+										unread={mailboxCount?.unread ?? 0}
+										avatarUrl={mailboxAvatarUrls[mailbox.id]}
+										onSelect={() => {
+											setSelectedMailbox(mailbox);
+											setOpen(false);
+											router.push("/inbox");
+										}}
+									/>
+								);
+							})}
+						</div>
+					)}
+
+					{otherSharedMailboxes.length > 0 && (
+						<div className="mt-2 rounded-[22px] bg-white/55 p-1">
+							<p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+								Shared accounts
+							</p>
+							{otherSharedMailboxes.map((mailbox) => {
 								const mailboxCount = counts.mailboxes.find((count) => count.mailboxId === mailbox.id);
 								return (
 									<MailboxAccountRow

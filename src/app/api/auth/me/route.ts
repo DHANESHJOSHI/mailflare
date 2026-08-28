@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
 import { hasPrimaryDomain, userHasMailboxes } from "@/lib/user";
+import { getLicenseEntitlements } from "@/lib/licenses/service";
 
 export async function GET(request: Request) {
 	const env = getEnv();
@@ -12,6 +13,7 @@ export async function GET(request: Request) {
 
 	let hasMailboxes = false;
 	let isSetup = true;
+	const entitlements = await getLicenseEntitlements(env);
 	try {
 		[hasMailboxes, isSetup] = await Promise.all([
 			userHasMailboxes(env, user.id),
@@ -26,6 +28,8 @@ export async function GET(request: Request) {
 			email: user.email,
 			name: user.name,
 			resetEmail: user.resetEmail,
+			forwardingEmail: user.forwardingEmail,
+			canForwardEmail: entitlements.canForwardEmail,
 			role: user.role,
 			canManageMailboxes: user.canManageMailboxes,
 			hasAvatar: !!user.avatarKey,

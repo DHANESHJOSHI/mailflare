@@ -1,6 +1,6 @@
 import { authFetch } from "@/lib/auth/client";
 import { clearMailboxesCache } from "@/components/mailbox-provider-utils";
-import type { MailboxDetail, MailboxDetailResponse } from "./types";
+import type { MailboxDetail, MailboxDetailResponse, SharedInboxAccessResponse } from "./types";
 
 export function getMailboxAddress(mailbox: Pick<MailboxDetail, "localPart" | "hostname">): string {
 	return `${mailbox.localPart}@${mailbox.hostname}`;
@@ -31,4 +31,29 @@ export async function updateMailboxName(id: string, displayName: string): Promis
 
 	clearMailboxesCache();
 	return json.mailbox;
+}
+
+export async function fetchSharedInboxAccess(id: string): Promise<SharedInboxAccessResponse> {
+	const res = await authFetch(`/api/mailboxes/${id}/access`);
+	const json = (await res.json()) as SharedInboxAccessResponse;
+	if (!res.ok) throw new Error(json.error ?? "Failed to load shared inbox access");
+	return json;
+}
+
+export async function grantSharedInboxAccess(id: string, userId: string): Promise<void> {
+	const res = await authFetch(`/api/mailboxes/${id}/access`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({ userId, permission: "full_access" }),
+	});
+	const json = (await res.json()) as { error?: string };
+	if (!res.ok) throw new Error(json.error ?? "Failed to add account");
+}
+
+export async function revokeSharedInboxAccess(id: string, userId: string): Promise<void> {
+	const res = await authFetch(`/api/mailboxes/${id}/access?userId=${encodeURIComponent(userId)}`, {
+		method: "DELETE",
+	});
+	const json = (await res.json()) as { error?: string };
+	if (!res.ok) throw new Error(json.error ?? "Failed to remove account");
 }

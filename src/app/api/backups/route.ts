@@ -5,6 +5,10 @@ import { backups } from "@/db/schema";
 import { assertAdmin } from "@/lib/auth/admin";
 import { requireUser } from "@/lib/auth/cookies";
 import {
+	getD1ExportConfiguration,
+	getD1ExportConfigurationStatus,
+} from "@/lib/backups/export";
+import {
 	createBackupRecord,
 	getBackupSettings,
 	listBackups,
@@ -31,7 +35,11 @@ export async function GET(request: Request) {
 			getBackupSettings(env),
 			listBackups(env),
 		]);
-		return NextResponse.json({ settings, backups: backupList });
+		return NextResponse.json({
+			settings,
+			backups: backupList,
+			configuration: getD1ExportConfigurationStatus(env),
+		});
 	} catch {
 		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 	}
@@ -53,6 +61,7 @@ export async function POST(request: Request) {
 	try {
 		const { env, user } = await requireAdmin(request);
 		const workflow = getBackupWorkflowBinding(env);
+		getD1ExportConfiguration(env);
 		const backupId = await createBackupRecord(env, "manual", user.id);
 		try {
 			await workflow.create({

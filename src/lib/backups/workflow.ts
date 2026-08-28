@@ -2,12 +2,12 @@ import { WorkflowEntrypoint, type WorkflowEvent, type WorkflowStep } from "cloud
 import { and, eq, inArray, lt } from "drizzle-orm";
 import { getDb } from "@/db";
 import { backups } from "@/db/schema";
+import { getD1ExportConfiguration, requestD1Export } from "./export";
 import { createScheduledBackupIfDue, getBackupSettings } from "./service";
-import type { BackupWorkflowParams, D1ExportResponse } from "./types";
+import type { BackupWorkflowParams } from "./types";
 import {
 	BACKUP_PREFIX,
 	createBackupFilename,
-	getExportError,
 } from "./utils";
 
 const EXPORT_RETRIES = 20;
@@ -33,10 +33,10 @@ export class DatabaseBackupWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ba
 					.where(eq(backups.id, backupId));
 			});
 
-			const exportUrl = this.getExportUrl();
+			const exportConfiguration = getD1ExportConfiguration(this.env);
 			const bookmark = await step.do("Start D1 export", async () => {
-				const response = await this.callExportApi(exportUrl, { output_format: "polling" });
-				if (!response.result?.at_bookmark) throw new Error(getExportError(response));
+				const response = await requestD1Export(exportConfiguration, { output_format: "polling" });
+				if (!response.result?.at_bookmark) throw new Error("D1 export did not return a bookmark");
 				return response.result.at_bookmark;
 			});
 
@@ -44,7 +44,7 @@ export class DatabaseBackupWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ba
 			let exportFilename = "";
 			for (let attempt = 1; attempt <= EXPORT_RETRIES; attempt += 1) {
 				const result = await step.do(`Poll D1 export ${attempt}`, async () =>
-					this.callExportApi(exportUrl, { output_format: "polling", current_bookmark: bookmark }),
+					requestD1Export(exportConfiguration, { output_format: "polling", current_bookmark: bookmark }),
 				);
 				// The polling response nests the finished export one level deeper
 				// (result.result.result); fall back to the flat shape defensively.
@@ -94,27 +94,6 @@ export class DatabaseBackupWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ba
 				.where(eq(backups.id, backupId));
 			throw error;
 		}
-	}
-
-	private getExportUrl(): string {
-		if (!this.env.CF_AID || !this.env.D1_DATABASE_ID || !this.env.D1_BACKUP_TOKEN) {
-			throw new Error("CF_AID, D1_DATABASE_ID, and D1_BACKUP_TOKEN must be configured");
-		}
-		return `https://api.cloudflare.com/client/v4/accounts/${this.env.CF_AID}/d1/database/${this.env.D1_DATABASE_ID}/export`;
-	}
-
-	private async callExportApi(url: string, payload: object): Promise<D1ExportResponse> {
-		const response = await fetch(url, {
-			method: "POST",
-			headers: {
-				Authorization: `Bearer ${this.env.D1_BACKUP_TOKEN}`,
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(payload),
-		});
-		const result = (await response.json()) as D1ExportResponse;
-		if (!response.ok || !result.success) throw new Error(getExportError(result));
-		return result;
 	}
 
 	private async deleteExpiredBackups(): Promise<{ deleted: number }> {

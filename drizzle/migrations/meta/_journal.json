@@ -106,6 +106,13 @@
       "when": 1787792400000,
       "tag": "0014_add_account_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "6",
+      "when": 1787882400000,
+      "tag": "0015_add_forwarding_email",
+      "breakpoints": true
     }
   ]
 }

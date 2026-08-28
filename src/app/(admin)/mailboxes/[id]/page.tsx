@@ -1,8 +1,7 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, Mail, Save } from "lucide-react";
-import Link from "next/link";
+import { Save, Trash2, UserPlus } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
@@ -16,8 +15,16 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { fetchMailbox, getMailboxAddress, updateMailboxName } from "./utils";
+import {
+  fetchMailbox,
+  fetchSharedInboxAccess,
+  getMailboxAddress,
+  grantSharedInboxAccess,
+  revokeSharedInboxAccess,
+  updateMailboxName,
+} from "./utils";
 import MailboxAvatarForm from "./MailboxAvatarForm";
 
 export default function MailboxSettingsPage() {
@@ -25,6 +32,7 @@ export default function MailboxSettingsPage() {
   const mailboxId = params.id;
   const qc = useQueryClient();
   const [displayName, setDisplayName] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState("");
 
   const mailbox = useQuery({
     queryKey: ["mailbox", mailboxId],
@@ -42,6 +50,23 @@ export default function MailboxSettingsPage() {
       qc.setQueryData(["mailbox", mailboxId], updatedMailbox);
       qc.invalidateQueries({ queryKey: ["mailboxes"] });
     },
+  });
+
+  const sharedAccess = useQuery({
+    queryKey: ["mailbox", mailboxId, "access"],
+    queryFn: () => fetchSharedInboxAccess(mailboxId),
+    enabled: mailbox.data?.type === "shared",
+  });
+  const addMember = useMutation({
+    mutationFn: () => grantSharedInboxAccess(mailboxId, selectedUserId),
+    onSuccess: async () => {
+      setSelectedUserId("");
+      await qc.invalidateQueries({ queryKey: ["mailbox", mailboxId, "access"] });
+    },
+  });
+  const removeMember = useMutation({
+    mutationFn: (userId: string) => revokeSharedInboxAccess(mailboxId, userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mailbox", mailboxId, "access"] }),
   });
 
   const address = mailbox.data ? getMailboxAddress(mailbox.data) : "";
@@ -123,6 +148,87 @@ export default function MailboxSettingsPage() {
           </Button>
         </CardContent>
       </Card>
+
+      {mailbox.data?.type === "shared" && (
+        <Card className="rounded-3xl border-0 bg-white p-6">
+          <CardHeader className="py-0">
+            <CardTitle>Shared access</CardTitle>
+            <CardDescription>
+              Team members added here can read, send, organize, and manage mail in this inbox.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4 pt-5">
+            {sharedAccess.isLoading && <Skeleton className="h-16 w-full rounded-2xl" />}
+            {(sharedAccess.data?.members ?? []).map((member) => (
+              <div
+                key={member.userId}
+                className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-50 px-4 py-3"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-neutral-900">
+                    {member.userName}
+                  </p>
+                  <p className="truncate text-xs text-neutral-500">{member.userEmail}</p>
+                </div>
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  aria-label={`Remove ${member.userName}`}
+                  disabled={removeMember.isPending}
+                  onClick={() => removeMember.mutate(member.userId)}
+                >
+                  <Trash2 className="h-4 w-4 text-red-600" />
+                </Button>
+              </div>
+            ))}
+            {sharedAccess.data && sharedAccess.data.members.length === 0 && (
+              <p className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+                No Team members have access yet.
+              </p>
+            )}
+            {sharedAccess.isError && (
+              <p className="text-sm text-red-600">
+                {sharedAccess.error instanceof Error
+                  ? sharedAccess.error.message
+                  : "Failed to load shared access"}
+              </p>
+            )}
+            <div className="flex gap-2">
+              <Select
+                value={selectedUserId}
+                onChange={(event) => setSelectedUserId(event.target.value)}
+                className="h-10 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-3 text-sm"
+              >
+                <option value="">Choose an account</option>
+                {(sharedAccess.data?.availableUsers ?? [])
+                  .filter(
+                    (account) =>
+                      !sharedAccess.data?.members.some((member) => member.userId === account.id),
+                  )
+                  .map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.name} ({account.email})
+                    </option>
+                  ))}
+              </Select>
+              <Button
+                type="button"
+                disabled={!selectedUserId || addMember.isPending}
+                onClick={() => addMember.mutate()}
+              >
+                <UserPlus className="h-4 w-4" />
+                {addMember.isPending ? "Adding..." : "Add user"}
+              </Button>
+            </div>
+            {addMember.isError && (
+              <p className="text-sm text-red-600">
+                {addMember.error instanceof Error ? addMember.error.message : "Failed to add account"}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 {/* 
       <Card className="rounded-3xl border-0 bg-white p-6">
         <CardHeader className="py-0">

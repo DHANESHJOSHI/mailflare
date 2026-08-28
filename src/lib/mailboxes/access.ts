@@ -1,7 +1,8 @@
 import { and, eq } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { domains, mailboxes } from "@/db/schema";
+import { domains, mailboxAccess, mailboxes } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth/types";
+import { isTeamMailboxSharingEnabled } from "./access-utils";
 import type { MailboxAccessLevel, MailboxPermission } from "./types";
 
 const permissionRank: Record<MailboxPermission, number> = {
@@ -25,12 +26,20 @@ export async function getMailboxAccessLevel(
 
 	const isOwner = mailbox.userId === user.id;
 	if (isOwner) return buildAccess(mailbox, "full_access", true);
+	if (mailbox.type !== "shared" || !(await isTeamMailboxSharingEnabled(db))) return null;
+
+	const [delegatedAccess] = await db
+		.select({ permission: mailboxAccess.permission })
+		.from(mailboxAccess)
+		.where(and(eq(mailboxAccess.mailboxId, mailbox.id), eq(mailboxAccess.userId, user.id)))
+		.limit(1);
+	if (delegatedAccess) return buildAccess(mailbox, delegatedAccess.permission, false);
 
 	return null;
 }
 
 export async function listAccessibleMailboxes(db: AppDatabase, user: Pick<SessionUser, "id" | "email" | "role">) {
-	const rows = await db
+	const ownedRows = await db
 		.select({
 			id: mailboxes.id,
 			userId: mailboxes.userId,
@@ -46,7 +55,7 @@ export async function listAccessibleMailboxes(db: AppDatabase, user: Pick<Sessio
 		.from(mailboxes)
 		.innerJoin(domains, eq(mailboxes.domainId, domains.id))
 		.where(and(eq(mailboxes.userId, user.id), eq(mailboxes.disabled, false)));
-	return rows
+	const owned = ownedRows
 		.map((row) => {
 			const { avatarKey, ...mailbox } = row;
 			return {
@@ -56,6 +65,42 @@ export async function listAccessibleMailboxes(db: AppDatabase, user: Pick<Sessio
 				isPrimary: `${row.localPart}@${row.hostname}` === user.email,
 			};
 		});
+
+	if (!(await isTeamMailboxSharingEnabled(db))) return owned;
+	const sharedRows = await db
+		.select({
+			id: mailboxes.id,
+			userId: mailboxes.userId,
+			domainId: mailboxes.domainId,
+			localPart: mailboxes.localPart,
+			displayName: mailboxes.displayName,
+			avatarKey: mailboxes.avatarKey,
+			type: mailboxes.type,
+			disabled: mailboxes.disabled,
+			createdAt: mailboxes.createdAt,
+			hostname: domains.hostname,
+			permission: mailboxAccess.permission,
+		})
+		.from(mailboxAccess)
+		.innerJoin(mailboxes, eq(mailboxAccess.mailboxId, mailboxes.id))
+		.innerJoin(domains, eq(mailboxes.domainId, domains.id))
+		.where(
+			and(
+				eq(mailboxAccess.userId, user.id),
+				eq(mailboxes.type, "shared"),
+				eq(mailboxes.disabled, false),
+			),
+		);
+	const shared = sharedRows.map((row) => {
+		const { avatarKey, ...mailbox } = row;
+		return {
+			...mailbox,
+			hasAvatar: !!avatarKey,
+			isPrimary: false,
+		};
+	});
+
+	return [...owned, ...shared];
 }
 
 export async function listAccessibleMailboxIds(db: AppDatabase, user: Pick<SessionUser, "id" | "email" | "role">) {

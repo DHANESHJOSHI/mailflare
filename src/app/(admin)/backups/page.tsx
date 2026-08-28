@@ -2,7 +2,15 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DatabaseBackup, Download, Play, Save, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  DatabaseBackup,
+  Download,
+  Play,
+  RefreshCw,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +81,8 @@ export default function BackupsPage() {
     runBackup.error ||
     deleteBackup.error ||
     download.error;
+  const configuration = backups.data?.configuration;
+  const backupConfigured = configuration?.configured === true;
 
   return (
     <div className="space-y-6">
@@ -88,7 +98,7 @@ export default function BackupsPage() {
         </div>
         <Button
           onClick={() => runBackup.mutate()}
-          disabled={runBackup.isPending}
+          disabled={runBackup.isPending || !backupConfigured}
         >
           <Play className="h-4 w-4" />
           {runBackup.isPending ? "Starting..." : "Back up now"}
@@ -99,6 +109,52 @@ export default function BackupsPage() {
         <p className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
           {error instanceof Error ? error.message : "Backup operation failed"}
         </p>
+      )}
+
+      {configuration && !configuration.configured && (
+        <Card className="rounded-3xl border border-amber-200 bg-amber-50 p-6">
+          <CardHeader className="py-0">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-amber-700" />
+              <div>
+                <CardTitle className="text-amber-950">
+                  Complete backup setup
+                </CardTitle>
+                <CardDescription className="mt-1 text-amber-800">
+                  Add the missing values under the deployed Worker&apos;s
+                  Variables and Secrets settings. This check disappears after
+                  backup configuration is complete.
+                </CardDescription>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-5">
+            <div className="flex flex-wrap items-center gap-2">
+              {configuration.missing.map((item) => (
+                <Badge
+                  key={item}
+                  variant="outline"
+                  className="border-amber-300 bg-white/70 text-amber-900"
+                >
+                  {item}
+                </Badge>
+              ))}
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="ml-auto border-amber-300 bg-white/70"
+                disabled={backups.isFetching}
+                onClick={() => void backups.refetch()}
+              >
+                <RefreshCw
+                  className={`h-4 w-4 ${backups.isFetching ? "animate-spin" : ""}`}
+                />
+                Check again
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       <Card className="rounded-3xl border-0 bg-white p-6">

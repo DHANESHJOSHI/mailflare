@@ -63,7 +63,7 @@ export default function AdminSettingsPage() {
 					Manage workspace-level mail infrastructure and integrations.
 				</p>
 			</div>
-			<div className="grid gap-4">
+			<div className="grid lg:grid-cols-2 gap-4">
 				{sections.map((section) => {
 					const Icon = section.icon;
 

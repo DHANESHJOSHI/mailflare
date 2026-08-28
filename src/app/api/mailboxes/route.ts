@@ -5,6 +5,7 @@ import { getDb } from "@/db";
 import { domains, mailboxes, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/cookies";
 import { newId } from "@/lib/ids";
+import { getLicenseEntitlements } from "@/lib/licenses/service";
 import { mailboxSchema } from "@/lib/validators";
 import { ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
 import { ensurePersonalMailbox } from "./utils";
@@ -14,7 +15,11 @@ export async function GET(request: Request) {
 	const user = await requireUser(env, request);
 	const db = getDb(env);
 	const rows = await ensurePersonalMailbox(env, db, user);
-	return NextResponse.json({ mailboxes: rows });
+	const entitlements = await getLicenseEntitlements(env);
+	return NextResponse.json({
+		mailboxes: rows,
+		canCreateShared: user.role === "admin" && entitlements.canManageAccounts,
+	});
 }
 
 export async function POST(request: Request) {
@@ -26,8 +31,14 @@ export async function POST(request: Request) {
 	}
 
 	const db = getDb(env);
-	const mailboxType = "personal";
-	const ownerUserId = parsed.data.ownerUserId ?? user.id;
+	const mailboxType = parsed.data.type ?? "personal";
+	if (mailboxType === "shared") {
+		const entitlements = await getLicenseEntitlements(env);
+		if (user.role !== "admin" || !entitlements.canManageAccounts) {
+			return NextResponse.json({ error: "A Team license is required to create shared inboxes" }, { status: 403 });
+		}
+	}
+	const ownerUserId = mailboxType === "shared" ? user.id : parsed.data.ownerUserId ?? user.id;
 	if (ownerUserId !== user.id) {
 		if (user.role !== "admin") {
 			return NextResponse.json({ error: "Forbidden" }, { status: 403 });

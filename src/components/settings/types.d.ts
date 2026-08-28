@@ -1,6 +1,8 @@
 export type ProfileFormProps = {
 	initialName: string;
 	initialResetEmail: string;
+	initialForwardingEmail: string;
+	canForwardEmail: boolean;
 	email: string;
 };
 
@@ -8,6 +10,8 @@ export type ProfileFormResponse = {
 	user?: {
 		name: string;
 		resetEmail: string | null;
+		forwardingEmail: string | null;
+		canForwardEmail: boolean;
 	};
 	error?: unknown;
 };
@@ -17,6 +21,8 @@ export type AccountSettingsResponse = {
 		email: string;
 		name: string;
 		resetEmail: string | null;
+		forwardingEmail: string | null;
+		canForwardEmail: boolean;
 	};
 	error?: unknown;
 };

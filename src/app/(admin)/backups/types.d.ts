@@ -26,4 +26,8 @@ export type BackupItem = {
 export type BackupsResponse = {
 	settings: BackupSettings;
 	backups: BackupItem[];
+	configuration: {
+		configured: boolean;
+		missing: string[];
+	};
 };

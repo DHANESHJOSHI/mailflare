@@ -9,6 +9,10 @@ import { processOutboundQueue, type OutboundQueueMessage } from "./src/lib/email
 import { isInboundQueueMessage } from "./worker-utils";
 import { getUserFromSession } from "./src/lib/auth/session";
 import { getSessionTokenFromRequest } from "./src/lib/realtime/utils";
+import {
+	getAccountForwardingDestination,
+	MAILFLARE_FORWARDED_HEADER,
+} from "./src/lib/email/account-forwarding";
 export { RealtimeHub } from "./src/lib/realtime/hub";
 export { DatabaseBackupWorkflow } from "./src/lib/backups/workflow";
 
@@ -34,6 +38,18 @@ export default {
 
 	async email(message: ForwardableEmailMessage, env: CloudflareEnv, ctx: ExecutionContext) {
 		try {
+			if (message.headers.get(MAILFLARE_FORWARDED_HEADER) !== "1") {
+				const forwardingDestination = await getAccountForwardingDestination(env, message.to);
+				if (forwardingDestination) {
+					try {
+						const forwardingHeaders = new Headers();
+						forwardingHeaders.set(MAILFLARE_FORWARDED_HEADER, "1");
+						await message.forward(forwardingDestination, forwardingHeaders);
+					} catch (error) {
+						console.error(`Account forwarding failed for ${message.to}`, error);
+					}
+				}
+			}
 			const rawR2Key = await storeRawToR2(env, message.from, message.to, message.raw);
 			const payload: InboundQueueMessage = {
 				from: message.from,

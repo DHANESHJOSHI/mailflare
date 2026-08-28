@@ -6,6 +6,9 @@ import type {
 	AccountMailboxAccessResponse,
 	AccountMailboxItem,
 	DomainOption,
+	ManagedAccount,
+	ManagedDomain,
+	ManagedMailbox,
 } from "./types";
 
 export const permissionLabels: Record<NonNullable<AccountMailboxAccessItem["permission"]>, string> = {
@@ -97,4 +100,73 @@ export function getMailboxAddress(mailbox: Pick<AccountMailboxAccessItem, "local
 
 export function getMailboxLabel(mailbox: Pick<AccountMailboxAccessItem, "displayName" | "localPart">): string {
 	return mailbox.displayName?.trim() || mailbox.localPart;
+}
+
+export async function fetchManagedAccount(accountId: string): Promise<ManagedAccount> {
+	const response = await authFetch(`/api/accounts/${accountId}`);
+	const data = (await response.json()) as { account?: ManagedAccount; error?: string };
+	if (!response.ok || !data.account) throw new Error(data.error ?? "Unable to load account");
+	return data.account;
+}
+
+export async function saveManagedAccount(account: ManagedAccount): Promise<void> {
+	const response = await authFetch(`/api/accounts/${account.id}`, {
+		method: "PATCH",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			name: account.name,
+			role: account.role,
+			disabled: account.disabled,
+			canManageMailboxes: account.canManageMailboxes,
+			forwardingEmail: account.forwardingEmail,
+		}),
+	});
+	const data = (await response.json()) as { error?: string };
+	if (!response.ok) throw new Error(data.error ?? "Unable to update account");
+}
+
+export async function uploadManagedAccountAvatar(accountId: string, file: File): Promise<void> {
+	const form = new FormData();
+	form.set("file", file);
+	const response = await authFetch(`/api/accounts/${accountId}/avatar`, { method: "POST", body: form });
+	if (!response.ok) throw new Error("Unable to update avatar");
+}
+
+export async function fetchManagedMailboxes(accountId: string): Promise<ManagedMailbox[]> {
+	const response = await authFetch(`/api/accounts/${accountId}/mailboxes`);
+	const data = (await response.json()) as { mailboxes?: ManagedMailbox[]; error?: string };
+	if (!response.ok) throw new Error(data.error ?? "Unable to load mailboxes");
+	return data.mailboxes ?? [];
+}
+
+export async function fetchManagedDomains(): Promise<ManagedDomain[]> {
+	const response = await authFetch("/api/domains");
+	const data = (await response.json()) as { domains?: ManagedDomain[]; error?: string };
+	if (!response.ok) throw new Error(data.error ?? "Unable to load domains");
+	return data.domains ?? [];
+}
+
+export async function addManagedMailbox(
+	account: ManagedAccount,
+	input: { domainId: string; localPart: string },
+): Promise<void> {
+	const response = await authFetch("/api/mailboxes", {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify({
+			ownerUserId: account.id,
+			domainId: input.domainId,
+			localPart: input.localPart,
+			displayName: account.name,
+			type: "personal",
+		}),
+	});
+	const data = (await response.json()) as { error?: string };
+	if (!response.ok) throw new Error(data.error ?? "Unable to add mailbox");
+}
+
+export async function removeManagedMailbox(mailboxId: string): Promise<void> {
+	const response = await authFetch(`/api/mailboxes/${mailboxId}`, { method: "DELETE" });
+	const data = (await response.json()) as { error?: string };
+	if (!response.ok) throw new Error(data.error ?? "Unable to remove mailbox");
 }
