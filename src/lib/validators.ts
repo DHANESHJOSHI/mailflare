@@ -73,7 +73,7 @@ export const updateManagedAccountSchema = z.object({
 	canManageMailboxes: z.boolean(),
 	forwardingEmail: z.preprocess(
 		(value) => (typeof value === "string" ? value.trim() : value),
-		z.string().email().or(z.literal("")).optional().transform((value) => value || null),
+		z.string().email().or(z.literal("")).optional().transform((value) => value === undefined ? undefined : value || null),
 	),
 });
 
@@ -139,7 +139,7 @@ export const updateProfileSchema = z.object({
 	),
 	forwardingEmail: z.preprocess(
 		(value) => (typeof value === "string" ? value.trim() : value),
-		z.string().email().or(z.literal("")).transform((value) => value || null),
+		z.string().email().or(z.literal("")).optional().transform((value) => value === undefined ? undefined : value || null),
 	),
 });
 

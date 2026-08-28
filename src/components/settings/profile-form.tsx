@@ -77,7 +77,7 @@ export function ProfileForm({ initialName, initialResetEmail, initialForwardingE
 				/>
 			</div>
 			{canForwardEmail && <div className="space-y-2">
-				<Label htmlFor="forwardingEmail">Forwarding email</Label>
+				<Label htmlFor="forwardingEmail">Forwarding email (optional)</Label>
 				<Input
 					id="forwardingEmail"
 					value={forwardingEmail}

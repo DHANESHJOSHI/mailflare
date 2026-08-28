@@ -19,6 +19,7 @@ export type Message = {
 	snippet: string | null;
 	status: MessageStatus | string;
 	read: boolean;
+	snoozedUntil?: string | null;
 	threadId: string | null;
 	createdAt: string;
 };

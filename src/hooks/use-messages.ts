@@ -5,6 +5,7 @@ import {
 	clearMessageListCache,
 	fetchMessageList,
 	getMessageQueryParams,
+	MESSAGE_POLL_INTERVAL_MS,
 } from "./utils";
 
 export function useMessages(
@@ -48,10 +49,12 @@ export function useMessages(
 			void loadMessages(true);
 		}
 		window.addEventListener("mailflare:messages-changed", onMessagesChanged);
+		const refreshInterval = window.setInterval(() => void loadMessages(true), MESSAGE_POLL_INTERVAL_MS);
 
 		return () => {
 			cancelled = true;
 			window.removeEventListener("mailflare:messages-changed", onMessagesChanged);
+			window.clearInterval(refreshInterval);
 		};
 	}, [enabled, filters?.limit, filters?.offset, filters?.query, filters?.read, filters?.title, folder, folderId, mailboxId]);
 

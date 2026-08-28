@@ -16,6 +16,7 @@ import { useMessages } from "@/hooks/use-messages";
 import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import { setMessageDragData } from "@/lib/messages/drag-utils";
 import { BulkMessageToolbar } from "./bulk-message-toolbar";
+import { MessageListRowActions } from "./message-list-row-actions";
 import { MessageNavigationProgress, useMessageNavigation } from "./message-navigation";
 import type { MessageFolderPageProps, MessageListRowProps } from "./types";
 import {
@@ -39,6 +40,7 @@ function MessageListRow({
 	compact = false,
 	currentAccountName,
 	onSelectedChange,
+	onMessageAction,
 	dragMessageIds,
 }: MessageListRowProps) {
 	const Icon = config.icon;
@@ -159,6 +161,12 @@ function MessageListRow({
 			<Link href={href} onClick={navigation.onNavigate} className="contents">
 				{content}
 			</Link>
+			{config.folder === "inbox" && message.direction === "inbound" && (
+				<MessageListRowActions
+					message={message}
+					onAction={(action) => onMessageAction(message.id, action)}
+				/>
+			)}
 		</div>
 	);
 }
@@ -337,6 +345,7 @@ export function MessageFolderPage({
 						compact={compact}
 						currentAccountName={currentAccountName}
 						onSelectedChange={updateSelectedMessage}
+						onMessageAction={(messageId, action) => runBulkMessageAction([messageId], action)}
 						dragMessageIds={selectedIds.includes(message.id) ? selectedIds : [message.id]}
 					/>
 				))}

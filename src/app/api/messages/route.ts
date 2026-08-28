@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, desc, and, like, or, count, isNull, inArray } from "drizzle-orm";
+import { eq, desc, and, like, or, count, isNull, inArray, lte } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { getEnv } from "@/lib/cloudflare";
 import { getCurrentUser } from "@/lib/auth/cookies";
@@ -54,6 +54,7 @@ export async function GET(request: Request) {
 	}
 	if (status === "received" && !folderId) {
 		conditions.push(isNull(messages.folderId));
+		conditions.push(or(isNull(messages.snoozedUntil), lte(messages.snoozedUntil, new Date()))!);
 	}
 	if (read === "read") {
 		conditions.push(eq(messages.read, true));

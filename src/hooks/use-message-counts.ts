@@ -43,10 +43,12 @@ export function useMessageCounts(mailboxId?: string | null, enabled = true) {
 			void loadCounts(true);
 		}
 		window.addEventListener("mailflare:messages-changed", onMessagesChanged);
+		const refreshInterval = window.setInterval(() => void loadCounts(true), 15_000);
 
 		return () => {
 			cancelled = true;
 			window.removeEventListener("mailflare:messages-changed", onMessagesChanged);
+			window.clearInterval(refreshInterval);
 		};
 	}, [enabled, mailboxId]);
 

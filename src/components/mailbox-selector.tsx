@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, LogOut, ShieldCheck, UserRound } from "lucide-react";
+import { Check, LogOut, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { useMessageCounts } from "@/hooks/use-message-counts";
@@ -16,6 +16,7 @@ import type { ProfileAvatarChangedDetail } from "@/lib/profile/types";
 import { MAILBOX_AVATAR_CHANGED_EVENT } from "@/lib/mailboxes/avatar-client";
 import type { MailboxAvatarChangedDetail } from "@/lib/mailboxes/avatar-client-types";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tooltip } from "@/components/ui/tooltip";
 import type {
 	AccountAvatarProps,
 	MailboxAccountRowProps,
@@ -82,7 +83,16 @@ function MailboxAccountRow({ mailbox, unread, avatarUrl, onSelect }: MailboxAcco
 				avatarUrl={avatarUrl ?? `/api/mailboxes/${mailbox.id}/avatar`}
 			/>
 			<div className="min-w-0 flex-1">
-				<p className="truncate text-sm font-semibold text-neutral-900">{name}</p>
+				<div className="flex items-center gap-1.5">
+					<p className="truncate text-sm font-semibold text-neutral-900">{name}</p>
+					{mailbox.type === "shared" && (
+						<Tooltip label="Shared inbox">
+							<span title="Shared inbox" aria-label="Shared inbox" className="shrink-0 text-blue-600">
+								<UsersRound className="h-3.5 w-3.5" />
+							</span>
+						</Tooltip>
+					)}
+				</div>
 				<p className="truncate text-xs text-neutral-500">{getMailboxAddress(mailbox)}</p>
 			</div>
 			{unread > 0 && (
@@ -166,12 +176,7 @@ export function MailboxSelector() {
 	const selectedAvatarUrl = selectedMailbox
 		? selectedMailboxAvatarUrl ?? `/api/mailboxes/${selectedMailbox.id}/avatar`
 		: avatarUrl;
-	const otherPersonalMailboxes = mailboxes.filter(
-		(mailbox) => mailbox.id !== selectedMailbox?.id && mailbox.type !== "shared",
-	);
-	const otherSharedMailboxes = mailboxes.filter(
-		(mailbox) => mailbox.id !== selectedMailbox?.id && mailbox.type === "shared",
-	);
+	const otherMailboxes = mailboxes.filter((mailbox) => mailbox.id !== selectedMailbox?.id);
 	const adminActive = isAdminPath(pathname);
 
 	async function logout() {
@@ -214,9 +219,16 @@ export function MailboxSelector() {
 								}}
 							/>
 							<div className="min-w-0 flex-1">
-								<p className="truncate text-lg font-semibold text-neutral-900">
-									{selectedName}
-								</p>
+								<div className="flex items-center gap-2">
+									<p className="truncate text-lg font-semibold text-neutral-900">{selectedName}</p>
+									{selectedMailbox?.type === "shared" && (
+										<Tooltip label="Shared inbox">
+											<span title="Shared inbox" aria-label="Shared inbox" className="shrink-0 text-blue-600">
+												<UsersRound className="h-4 w-4" />
+											</span>
+										</Tooltip>
+									)}
+								</div>
 								<p className="truncate text-sm text-neutral-500">
 									{selectedEmail}
 								</p>
@@ -225,36 +237,12 @@ export function MailboxSelector() {
 						</div>
 					</div>
 
-					{otherPersonalMailboxes.length > 0 && (
+					{otherMailboxes.length > 0 && (
 						<div className="mt-2 rounded-[22px] bg-white/55 p-1">
 							<p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
 								Other accounts
 							</p>
-							{otherPersonalMailboxes.map((mailbox) => {
-								const mailboxCount = counts.mailboxes.find((count) => count.mailboxId === mailbox.id);
-								return (
-									<MailboxAccountRow
-										key={mailbox.id}
-										mailbox={mailbox}
-										unread={mailboxCount?.unread ?? 0}
-										avatarUrl={mailboxAvatarUrls[mailbox.id]}
-										onSelect={() => {
-											setSelectedMailbox(mailbox);
-											setOpen(false);
-											router.push("/inbox");
-										}}
-									/>
-								);
-							})}
-						</div>
-					)}
-
-					{otherSharedMailboxes.length > 0 && (
-						<div className="mt-2 rounded-[22px] bg-white/55 p-1">
-							<p className="px-4 pb-1 pt-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">
-								Shared accounts
-							</p>
-							{otherSharedMailboxes.map((mailbox) => {
+							{otherMailboxes.map((mailbox) => {
 								const mailboxCount = counts.mailboxes.find((count) => count.mailboxId === mailbox.id);
 								return (
 									<MailboxAccountRow

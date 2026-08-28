@@ -42,6 +42,7 @@ export async function GET(request: Request) {
 			direction: messages.direction,
 			status: messages.status,
 			read: messages.read,
+			snoozedUntil: messages.snoozedUntil,
 		})
 		.from(messages)
 		.where(and(...conditions));

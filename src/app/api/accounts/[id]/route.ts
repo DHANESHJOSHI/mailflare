@@ -51,7 +51,7 @@ export async function PATCH(request: Request, { params }: AccountRouteParams) {
 		role: parsed.data.role,
 		disabled: parsed.data.disabled,
 		canManageMailboxes: parsed.data.canManageMailboxes,
-		forwardingEmail: parsed.data.forwardingEmail,
+		...(parsed.data.forwardingEmail !== undefined ? { forwardingEmail: parsed.data.forwardingEmail } : {}),
 	}).where(eq(users.id, id));
 	return NextResponse.json({ ok: true });
 }

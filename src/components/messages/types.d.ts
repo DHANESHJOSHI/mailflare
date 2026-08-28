@@ -23,7 +23,15 @@ export type MessageListRowProps = {
 	compact?: boolean;
 	currentAccountName?: string;
 	onSelectedChange: (messageId: string, selected: boolean) => void;
+	onMessageAction: (messageId: string, action: RowMessageAction) => Promise<void>;
 	dragMessageIds: string[];
+};
+
+export type RowMessageAction = "archive" | "trash" | "read" | "unread";
+
+export type MessageListRowActionsProps = {
+	message: Message;
+	onAction: (action: RowMessageAction) => Promise<void>;
 };
 
 export type MessageFolderPageProps = {

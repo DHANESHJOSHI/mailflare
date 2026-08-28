@@ -2,6 +2,7 @@ import type { MessageCounts, MessageFolder } from "@/hooks/types";
 import type { CountableFolder, MessageCountRow } from "./types";
 
 export function getMessageFolder(row: MessageCountRow): CountableFolder {
+	if (row.snoozedUntil && row.snoozedUntil > new Date()) return null;
 	if (row.status === "trash") return "trash";
 	if (row.status === "spam") return "spam";
 	if (row.status === "archived") return "archived";

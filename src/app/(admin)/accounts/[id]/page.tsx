@@ -85,7 +85,7 @@ export default function AccountDetailsPage() {
 					<Input id="account-name" value={account.name} onChange={(event) => setAccount({ ...account, name: event.target.value })} />
 				</div>
 				{account.canForwardEmail && <div className="space-y-2">
-					<Label htmlFor="forwarding-email">Forwarding email</Label>
+					<Label htmlFor="forwarding-email">Forwarding email (optional)</Label>
 					<Input
 						id="forwarding-email"
 						type="email"

@@ -27,12 +27,13 @@ export async function PATCH(request: Request) {
 	if (!canForwardEmail && parsed.forwardingEmail && parsed.forwardingEmail !== user.forwardingEmail) {
 		return NextResponse.json({ error: "A Pro or Team license is required for email forwarding" }, { status: 403 });
 	}
+	const forwardingEmail = parsed.forwardingEmail === undefined ? user.forwardingEmail : parsed.forwardingEmail;
 	await db
 		.update(users)
 		.set({
 			name: parsed.name,
 			resetEmail: parsed.resetEmail,
-			forwardingEmail: parsed.forwardingEmail,
+			forwardingEmail,
 		})
 		.where(eq(users.id, user.id));
 
@@ -42,7 +43,7 @@ export async function PATCH(request: Request) {
 			email: user.email,
 			name: parsed.name,
 			resetEmail: parsed.resetEmail,
-			forwardingEmail: parsed.forwardingEmail,
+			forwardingEmail,
 			canForwardEmail,
 		},
 	});
