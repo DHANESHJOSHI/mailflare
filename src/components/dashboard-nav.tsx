@@ -4,6 +4,7 @@ import type { FormEvent } from "react";
 import { useEffect, useState } from "react";
 import {
   Archive,
+  Clock,
   FileText,
   Folder,
   Inbox,
@@ -11,6 +12,7 @@ import {
   Plus,
   Send,
   ShieldAlert,
+  Star,
   Trash2,
 } from "lucide-react";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
@@ -41,6 +43,8 @@ import { useSidebar } from "./sidebar-state";
 const links = [
   { href: "/compose", label: "Compose", icon: MailPlus, primary: true },
   { href: "/inbox", label: "Inbox", icon: Inbox, preloadMessages: true },
+  { href: "/starred", label: "Starred", icon: Star, preloadMessages: true },
+  { href: "/snoozed", label: "Snoozed", icon: Clock, preloadMessages: true },
   { href: "/sent", label: "Sent", icon: Send, preloadMessages: true },
   { href: "/drafts", label: "Drafts", icon: FileText, preloadMessages: true },
   { href: "/archived", label: "Archived", icon: Archive, preloadMessages: true },
@@ -60,6 +64,12 @@ export function DashboardNav({ className }: { className?: string }) {
   const linksWithCounts: NavLink[] = links.map((link): NavLink => {
     if (link.href === "/inbox") {
       return { ...link, count: getFolderNavCount("inbox", counts.folders) };
+    }
+    if (link.href === "/starred") {
+      return { ...link, count: getFolderNavCount("starred", counts.folders) };
+    }
+    if (link.href === "/snoozed") {
+      return { ...link, count: getFolderNavCount("snoozed", counts.folders) };
     }
     if (link.href === "/sent") {
       return { ...link, count: getFolderNavCount("sent", counts.folders) };

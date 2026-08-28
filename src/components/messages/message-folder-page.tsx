@@ -17,6 +17,7 @@ import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import { setMessageDragData } from "@/lib/messages/drag-utils";
 import { BulkMessageToolbar } from "./bulk-message-toolbar";
 import { MessageListRowActions } from "./message-list-row-actions";
+import { toggleMessageStar } from "./message-list-row-actions-utils";
 import { MessageNavigationProgress, useMessageNavigation } from "./message-navigation";
 import type { MessageFolderPageProps, MessageListRowProps } from "./types";
 import {
@@ -45,10 +46,13 @@ function MessageListRow({
 }: MessageListRowProps) {
 	const Icon = config.icon;
 	const { openDraftComposer } = useCompose();
-	const unread = message.direction === "inbound" && !message.read;
+	const [read, setRead] = useState(message.read);
+	const [starred, setStarred] = useState(message.starred);
+	const rowMessage = { ...message, read, starred };
+	const unread = rowMessage.direction === "inbound" && !rowMessage.read;
 	const draggable = config.folder === "inbox" && message.direction === "inbound";
-	const party = getMessageParty(message, config.folder, currentAccountName);
-	const preview = getMessagePreview(message, config.folder);
+	const party = getMessageParty(rowMessage, config.folder, currentAccountName);
+	const preview = getMessagePreview(rowMessage, config.folder);
 	const href = `${config.hrefPrefix}/${message.id}`;
 	const navigation = useMessageNavigation(href, message.id);
 
@@ -100,24 +104,43 @@ function MessageListRow({
 	}
 
 	const className =
-		`grid min-h-12 w-full grid-cols-[24px_32px_minmax(160px,240px)_1fr_auto] items-center gap-3 px-6 text-left text-sm hover:relative hover:z-10 hover:bg-[#f2f6fc] hover:shadow-sm ${
+		`group relative grid min-h-12 w-full grid-cols-[24px_32px_minmax(160px,240px)_1fr_auto] items-center gap-3 px-6 text-left text-sm hover:z-10 hover:bg-[#f2f6fc] hover:shadow-sm ${
 			active || selected ? "bg-blue-50" : ""
 		} ${draggable ? "cursor-grab active:cursor-grabbing" : ""}`;
 	const content = (
 		<>
-			<Icon className="h-4 w-4 text-neutral-300" />
-			<span className={getMessagePartyClassName(message, config.folder)}>
+			{config.folder === "inbox" && message.direction === "inbound" && (
+				<Tooltip label={starred ? "Starred" : "Not starred"}>
+					<Button
+						type="button"
+						variant="ghost"
+						size="sm"
+						onClick={(event) => {
+							event.preventDefault();
+							event.stopPropagation();
+							void toggleMessageStar(message.id).then((result) => setStarred(result.starred));
+						}}
+						aria-label={starred ? "Starred" : "Not starred"}
+					>
+						<Icon className={`h-4 w-4 ${starred ? "fill-amber-400 text-amber-400" : "text-neutral-300"}`} />
+					</Button>
+				</Tooltip>
+			)}
+			{(config.folder !== "inbox" || message.direction !== "inbound") && (
+				<Icon className="h-4 w-4 text-neutral-300" />
+			)}
+			<span className={getMessagePartyClassName(rowMessage, config.folder)}>
 				{party}
 			</span>
 			<span className="truncate text-neutral-700">
 				<span className={unread ? "font-bold text-neutral-900" : ""}>
-					{message.subject ?? "(no subject)"}
+					{rowMessage.subject ?? "(no subject)"}
 				</span>
-				<span className="text-neutral-500"> - {getMessagePreview(message, config.folder)}</span>
+				<span className="text-neutral-500"> - {getMessagePreview(rowMessage, config.folder)}</span>
 			</span>
 			<time
 				dateTime={message.createdAt}
-				className={`min-w-[96px] whitespace-nowrap text-right text-xs ${
+				className={`min-w-[96px] whitespace-nowrap text-right text-xs group-hover:opacity-0 ${
 					unread ? "font-semibold text-neutral-800" : "text-neutral-500"
 				}`}
 			>
@@ -161,10 +184,20 @@ function MessageListRow({
 			<Link href={href} onClick={navigation.onNavigate} className="contents">
 				{content}
 			</Link>
-			{config.folder === "inbox" && message.direction === "inbound" && (
+			{(config.folder === "inbox" || config.folder === "snoozed") && message.direction === "inbound" && (
 				<MessageListRowActions
-					message={message}
-					onAction={(action) => onMessageAction(message.id, action)}
+					message={rowMessage}
+					onAction={async (action) => {
+						const previousRead = read;
+						if (action === "read") setRead(true);
+						if (action === "unread") setRead(false);
+						try {
+							await onMessageAction(message.id, action);
+						} catch (error) {
+							if (action === "read" || action === "unread") setRead(previousRead);
+							throw error;
+						}
+					}}
 				/>
 			)}
 		</div>
@@ -345,7 +378,7 @@ export function MessageFolderPage({
 						compact={compact}
 						currentAccountName={currentAccountName}
 						onSelectedChange={updateSelectedMessage}
-						onMessageAction={(messageId, action) => runBulkMessageAction([messageId], action)}
+						onMessageAction={(messageId, action) => runBulkMessageAction([messageId], action, action !== "read" && action !== "unread")}
 						dragMessageIds={selectedIds.includes(message.id) ? selectedIds : [message.id]}
 					/>
 				))}

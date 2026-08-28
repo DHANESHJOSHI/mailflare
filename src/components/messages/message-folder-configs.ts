@@ -11,6 +11,24 @@ export const inboxFolderConfig: MessageFolderConfig = {
 	showRowBadge: false,
 };
 
+export const starredFolderConfig: MessageFolderConfig = {
+	folder: "starred",
+	title: "Starred",
+	emptyText: "No starred emails",
+	hrefPrefix: "/starred",
+	icon: Star,
+	badgeVariant: "outline",
+};
+
+export const snoozedFolderConfig: MessageFolderConfig = {
+	folder: "snoozed",
+	title: "Snoozed",
+	emptyText: "No snoozed emails",
+	hrefPrefix: "/snoozed",
+	icon: Clock,
+	badgeVariant: "outline",
+};
+
 export const sentFolderConfig: MessageFolderConfig = {
 	folder: "sent",
 	title: "Sent",

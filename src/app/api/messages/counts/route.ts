@@ -42,6 +42,7 @@ export async function GET(request: Request) {
 			direction: messages.direction,
 			status: messages.status,
 			read: messages.read,
+			starred: messages.starred,
 			snoozedUntil: messages.snoozedUntil,
 		})
 		.from(messages)

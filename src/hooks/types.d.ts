@@ -1,6 +1,6 @@
 export type MessageStatus = "received" | "sent" | "draft" | "queued" | "failed" | "archived" | "trash" | "spam";
 
-export type MessageFolder = "inbox" | "sent" | "drafts" | "archived" | "trash" | "spam";
+export type MessageFolder = "inbox" | "starred" | "snoozed" | "sent" | "drafts" | "archived" | "trash" | "spam";
 
 export type MessageDirection = "inbound" | "outbound";
 
@@ -19,6 +19,7 @@ export type Message = {
 	snippet: string | null;
 	status: MessageStatus | string;
 	read: boolean;
+	starred: boolean;
 	snoozedUntil?: string | null;
 	threadId: string | null;
 	createdAt: string;

@@ -26,8 +26,8 @@ export function useMessages(
 	useEffect(() => {
 		if (!enabled) return;
 		let cancelled = false;
-		async function loadMessages(force = false) {
-			setIsLoading(true);
+		async function loadMessages(force = false, showLoading = false) {
+			if (showLoading) setIsLoading(true);
 			try {
 				const params = getMessageQueryParams(folder, mailboxId, filters, folderId);
 				const data = await fetchMessageList(params, force);
@@ -42,7 +42,7 @@ export function useMessages(
 			}
 		}
 
-		void loadMessages();
+		void loadMessages(false, true);
 		function onMessagesChanged() {
 			clearMessageListCache();
 			clearMessageCountsCache();

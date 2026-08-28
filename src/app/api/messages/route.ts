@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, desc, and, like, or, count, isNull, inArray, lte } from "drizzle-orm";
+import { eq, desc, and, like, or, count, isNull, inArray, lte, gt } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { getEnv } from "@/lib/cloudflare";
 import { getCurrentUser } from "@/lib/auth/cookies";
@@ -25,6 +25,8 @@ export async function GET(request: Request) {
 	const query = url.searchParams.get("q")?.trim();
 	const title = url.searchParams.get("title")?.trim();
 	const read = url.searchParams.get("read");
+	const starred = url.searchParams.get("starred");
+	const snoozed = url.searchParams.get("snoozed");
 	const limit = Math.min(Number(url.searchParams.get("limit") ?? 50), 100);
 	const offset = Math.max(Number(url.searchParams.get("offset") ?? 0), 0);
 
@@ -55,6 +57,14 @@ export async function GET(request: Request) {
 	if (status === "received" && !folderId) {
 		conditions.push(isNull(messages.folderId));
 		conditions.push(or(isNull(messages.snoozedUntil), lte(messages.snoozedUntil, new Date()))!);
+	}
+	if (starred === "true") {
+		conditions.push(eq(messages.starred, true));
+	}
+	if (snoozed === "true") {
+		conditions.push(eq(messages.status, "received"));
+		conditions.push(isNull(messages.folderId));
+		conditions.push(gt(messages.snoozedUntil, new Date()));
 	}
 	if (read === "read") {
 		conditions.push(eq(messages.read, true));

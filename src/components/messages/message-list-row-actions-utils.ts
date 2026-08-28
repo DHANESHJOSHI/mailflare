@@ -34,3 +34,21 @@ export async function snoozeMessage(messageId: string, snoozedUntil: string) {
 	if (!response.ok) throw new Error("Unable to snooze message");
 	window.dispatchEvent(new Event("mailflare:messages-changed"));
 }
+
+export function isMessageSnoozed(snoozedUntil?: string | null): boolean {
+	return !!snoozedUntil && new Date(snoozedUntil) > new Date();
+}
+
+export async function unsnoozeMessage(messageId: string) {
+	const response = await authFetch(`/api/messages/${messageId}/snooze`, { method: "DELETE" });
+	if (!response.ok) throw new Error("Unable to unsnooze message");
+	window.dispatchEvent(new Event("mailflare:messages-changed"));
+}
+
+export async function toggleMessageStar(messageId: string) {
+	const response = await authFetch(`/api/messages/${messageId}/star`, { method: "POST" });
+	if (!response.ok) throw new Error("Unable to update message star");
+	const result = (await response.json()) as { starred: boolean };
+	window.dispatchEvent(new Event("mailflare:message-counts-changed"));
+	return result;
+}

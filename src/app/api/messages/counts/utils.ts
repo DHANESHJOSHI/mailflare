@@ -2,7 +2,7 @@ import type { MessageCounts, MessageFolder } from "@/hooks/types";
 import type { CountableFolder, MessageCountRow } from "./types";
 
 export function getMessageFolder(row: MessageCountRow): CountableFolder {
-	if (row.snoozedUntil && row.snoozedUntil > new Date()) return null;
+	if (row.snoozedUntil && row.snoozedUntil > new Date()) return "snoozed";
 	if (row.status === "trash") return "trash";
 	if (row.status === "spam") return "spam";
 	if (row.status === "archived") return "archived";
@@ -15,6 +15,8 @@ export function getMessageFolder(row: MessageCountRow): CountableFolder {
 export function createEmptyFolderCounts(): MessageCounts["folders"] {
 	return {
 		inbox: { total: 0, unread: 0 },
+		starred: { total: 0, unread: 0 },
+		snoozed: { total: 0, unread: 0 },
 		sent: { total: 0, unread: 0 },
 		drafts: { total: 0, unread: 0 },
 		archived: { total: 0, unread: 0 },
@@ -31,6 +33,10 @@ export function buildMessageCounts(rows: MessageCountRow[]): MessageCounts {
 	for (const row of rows) {
 		const folder = getMessageFolder(row);
 		const unread = row.direction === "inbound" && !row.read;
+		if (row.starred) {
+			folders.starred.total += 1;
+			if (unread) folders.starred.unread += 1;
+		}
 		if (folder) {
 			folders[folder].total += 1;
 			if (unread) folders[folder].unread += 1;

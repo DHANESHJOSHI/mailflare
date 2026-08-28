@@ -120,6 +120,13 @@
       "when": 1788000000000,
       "tag": "0016_add_message_snooze",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "6",
+      "when": 1788086400000,
+      "tag": "0017_add_message_star",
+      "breakpoints": true
     }
   ]
 }

@@ -62,7 +62,7 @@ export function formatEmailPageTitle({ location, total, unread, emailAddress }: 
 	return `${location} (${count})${suffix}`;
 }
 
-export async function runBulkMessageAction(messageIds: string[], action: string) {
+export async function runBulkMessageAction(messageIds: string[], action: string, notify = true) {
 	const response = await authFetch("/api/messages/bulk", {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },
@@ -70,5 +70,5 @@ export async function runBulkMessageAction(messageIds: string[], action: string)
 	});
 
 	if (!response.ok) throw new Error("Unable to update selected messages");
-	window.dispatchEvent(new Event("mailflare:messages-changed"));
+	window.dispatchEvent(new Event(notify ? "mailflare:messages-changed" : "mailflare:message-counts-changed"));
 }

@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Input } from "@/components/ui/input";
 import { Tooltip } from "@/components/ui/tooltip";
 import type { MessageListRowActionsProps } from "./types";
-import { getSnoozePresets, snoozeMessage } from "./message-list-row-actions-utils";
+import { getSnoozePresets, isMessageSnoozed, snoozeMessage, unsnoozeMessage } from "./message-list-row-actions-utils";
 
 export function MessageListRowActions({ message, onAction }: MessageListRowActionsProps) {
 	const [snoozeOpen, setSnoozeOpen] = useState(false);
@@ -15,6 +15,7 @@ export function MessageListRowActions({ message, onAction }: MessageListRowActio
 	const [snoozing, setSnoozing] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const snoozePresets = getSnoozePresets();
+	const snoozed = isMessageSnoozed(message.snoozedUntil);
 	const readAction = message.read ? "unread" : "read";
 
 	async function handleSnooze() {
@@ -32,7 +33,7 @@ export function MessageListRowActions({ message, onAction }: MessageListRowActio
 
 	return (
 		<>
-			<div className="absolute right-6 top-1/2 z-10 hidden -translate-y-1/2 items-center gap-1 bg-inherit pl-3 group-hover:flex group-focus-within:flex">
+			<div className="pointer-events-none absolute right-6 top-1/2 z-10 flex -translate-y-1/2 items-center gap-1 pl-3 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100">
 				<Tooltip label="Archive">
 					<Button type="button" variant="ghost" size="sm" onClick={() => void onAction("archive")} aria-label="Archive">
 						<Archive className="h-4 w-4" />
@@ -48,8 +49,14 @@ export function MessageListRowActions({ message, onAction }: MessageListRowActio
 						{readAction === "read" ? <MailOpen className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
 					</Button>
 				</Tooltip>
-				<Tooltip label="Snooze">
-					<Button type="button" variant="ghost" size="sm" onClick={() => setSnoozeOpen(true)} aria-label="Snooze">
+				<Tooltip label={snoozed ? "Unsnooze" : "Snooze"}>
+					<Button type="button" variant="ghost" size="sm" onClick={() => {
+						if (snoozed) {
+							void unsnoozeMessage(message.id);
+							return;
+						}
+						setSnoozeOpen(true);
+					}} aria-label={snoozed ? "Unsnooze" : "Snooze"}>
 						<Clock className="h-4 w-4" />
 					</Button>
 				</Tooltip>
