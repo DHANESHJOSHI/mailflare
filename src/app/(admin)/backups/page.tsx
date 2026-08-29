@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   AlertTriangle,
@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Save,
   Trash2,
+  Upload,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,12 +35,14 @@ import {
   formatBackupSize,
   getStatusClass,
   removeBackup,
+  restoreBackup,
   saveBackupSettings,
   startBackup,
 } from "./utils";
 
 export default function BackupsPage() {
   const queryClient = useQueryClient();
+  const restoreInput = useRef<HTMLInputElement | null>(null);
   const [settings, setSettings] = useState<BackupSettings | null>(null);
   const backups = useQuery({
     queryKey: ["backups"],
@@ -75,12 +78,17 @@ export default function BackupsPage() {
   });
 
   const download = useMutation({ mutationFn: downloadBackup });
+  const restore = useMutation({
+    mutationFn: restoreBackup,
+    onSuccess: () => window.location.assign("/login"),
+  });
   const error =
     backups.error ||
     saveSettings.error ||
     runBackup.error ||
     deleteBackup.error ||
-    download.error;
+    download.error ||
+    restore.error;
   const configuration = backups.data?.configuration;
   const backupConfigured = configuration?.configured === true;
 
@@ -92,17 +100,31 @@ export default function BackupsPage() {
             Database Backups
           </h1>
           <p className="mt-1 text-sm text-neutral-500">
-            Create full D1 SQL exports and store them in the configured R2
-            bucket.
+            Export database records through the D1 binding and store them in the configured R2 bucket.
           </p>
         </div>
-        <Button
-          onClick={() => runBackup.mutate()}
-          disabled={runBackup.isPending || !backupConfigured}
-        >
-          <Play className="h-4 w-4" />
-          {runBackup.isPending ? "Starting..." : "Back up now"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Input
+            ref={restoreInput}
+            type="file"
+            accept="application/json,.json"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file || !window.confirm("Restore this backup? This replaces all current database records and may sign you out.")) return;
+              restore.mutate(file);
+            }}
+          />
+          <Button type="button" variant="outline" disabled={restore.isPending} onClick={() => restoreInput.current?.click()}>
+            <Upload className="h-4 w-4" />
+            {restore.isPending ? "Restoring..." : "Restore"}
+          </Button>
+          <Button onClick={() => runBackup.mutate()} disabled={runBackup.isPending || !backupConfigured}>
+            <Play className="h-4 w-4" />
+            {runBackup.isPending ? "Starting..." : "Back up now"}
+          </Button>
+        </div>
       </div>
 
       {error && (

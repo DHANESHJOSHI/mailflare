@@ -7,7 +7,7 @@ import { requireUser } from "@/lib/auth/cookies";
 import { newId } from "@/lib/ids";
 import { getLicenseEntitlements } from "@/lib/licenses/service";
 import { mailboxSchema } from "@/lib/validators";
-import { ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
+import { ensureMailboxDomainRouting, getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
 import { ensurePersonalMailbox } from "./utils";
 
 export async function GET(request: Request) {
@@ -17,7 +17,10 @@ export async function GET(request: Request) {
 	const rows = await ensurePersonalMailbox(env, db, user);
 	const entitlements = await getLicenseEntitlements(env);
 	return NextResponse.json({
-		mailboxes: rows,
+		mailboxes: await Promise.all(rows.map(async (mailbox) => ({
+			...mailbox,
+			senderAddresses: await getMailboxDomainAddresses(db, mailbox),
+		}))),
 		canCreateShared: user.role === "admin" && entitlements.canManageAccounts,
 	});
 }
@@ -73,14 +76,6 @@ export async function POST(request: Request) {
 		return NextResponse.json({ error: "Mailbox already exists" }, { status: 409 });
 	}
 
-	const address = `${localPart}@${domain.hostname}`;
-	try {
-		await ensureEmailRoutingRuleToWorker(env, domain.zoneId, address);
-	} catch (err) {
-		const message = err instanceof Error ? err.message : "Failed to create Cloudflare routing rule";
-		return NextResponse.json({ error: message }, { status: 502 });
-	}
-
 	const id = newId("mbx");
 	await db.insert(mailboxes).values({
 		id,
@@ -90,6 +85,15 @@ export async function POST(request: Request) {
 		displayName: parsed.data.displayName,
 		type: mailboxType,
 	});
+	try {
+		await ensureMailboxDomainRouting(env, db, { id, domainId: domain.id, localPart, useAllDomains: true });
+	} catch (err) {
+		await db.delete(mailboxes).where(eq(mailboxes.id, id));
+		const message = err instanceof Error ? err.message : "Failed to create Cloudflare routing rule";
+		return NextResponse.json({ error: message }, { status: 502 });
+	}
+
+	const address = `${localPart}@${domain.hostname}`;
 
 	return NextResponse.json({
 		id,

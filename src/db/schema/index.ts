@@ -58,6 +58,7 @@ export const mailboxes = sqliteTable(
 		displayName: text("display_name"),
 		avatarKey: text("avatar_key"),
 		type: text("type", { enum: ["personal", "shared"] }).notNull().default("personal"),
+		useAllDomains: integer("use_all_domains", { mode: "boolean" }).notNull().default(true),
 		disabled: integer("disabled", { mode: "boolean" }).notNull().default(false),
 		createdAt: integer("created_at", { mode: "timestamp" })
 			.notNull()

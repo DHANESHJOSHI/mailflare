@@ -1,6 +1,7 @@
 import { eq, and } from "drizzle-orm";
 import { getDb } from "@/db";
-import { domains } from "@/db/schema";
+import { domains, mailboxes } from "@/db/schema";
+import { ensureMailboxDomainRouting } from "@/lib/mailboxes/domain-addresses";
 import { newId } from "@/lib/ids";
 import {
 	disableEmailRouting,
@@ -54,6 +55,18 @@ export async function addDomainForUser(
 		await db.update(domains).set(values).where(eq(domains.id, domainId));
 	} else {
 		await db.insert(domains).values(values);
+	}
+
+	const aliasMailboxes = await db
+		.select({ id: mailboxes.id, domainId: mailboxes.domainId, localPart: mailboxes.localPart, useAllDomains: mailboxes.useAllDomains })
+		.from(mailboxes)
+		.innerJoin(domains, eq(mailboxes.domainId, domains.id))
+		.where(and(eq(domains.userId, userId), eq(mailboxes.useAllDomains, true)));
+	const routingResults = await Promise.allSettled(
+		aliasMailboxes.map((mailbox) => ensureMailboxDomainRouting(env, db, mailbox)),
+	);
+	for (const result of routingResults) {
+		if (result.status === "rejected") console.warn("ensureMailboxDomainRouting", result.reason);
 	}
 
 	const [domain] = await db.select().from(domains).where(eq(domains.id, domainId)).limit(1);

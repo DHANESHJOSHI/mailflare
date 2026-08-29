@@ -5,10 +5,11 @@ import { FileText, Minimize2, Paperclip, Send, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { authFetch } from "@/lib/auth/client";
-import { formatEmailAddress } from "@/lib/email/address";
+import { formatEmailAddress, getEmailAddress } from "@/lib/email/address";
 import { cn } from "@/lib/utils";
 import { buildSendFormData, fetchDraft, formatAttachmentSize } from "./utils";
 import type { ComposeAttachment } from "./types";
@@ -34,6 +35,8 @@ export function ComposeForm({
 	const [loading, setLoading] = useState(false);
 	const [loadingDraft, setLoadingDraft] = useState(false);
 	const [loadedDraftMailboxId, setLoadedDraftMailboxId] = useState<string | null>(null);
+	const [loadedDraftFrom, setLoadedDraftFrom] = useState<string | null>(null);
+	const [selectedFrom, setSelectedFrom] = useState("");
 	const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const attachmentInput = useRef<HTMLInputElement | null>(null);
 
@@ -41,16 +44,32 @@ export function ComposeForm({
 		if (!selectedMailbox && mailboxes.length === 1) setSelectedMailbox(mailboxes[0]);
 	}, [mailboxes, selectedMailbox, setSelectedMailbox]);
 
-	const fromAddr = useMemo(
-		() =>
-			selectedMailbox
-				? formatEmailAddress(
-						`${selectedMailbox.localPart}@${selectedMailbox.hostname}`,
-						selectedMailbox.displayName,
-					)
-				: "",
-		[selectedMailbox],
+	const senderAddresses = useMemo(() => {
+		if (!selectedMailbox) return [];
+		return selectedMailbox.senderAddresses?.length
+			? selectedMailbox.senderAddresses
+			: [`${selectedMailbox.localPart}@${selectedMailbox.hostname}`];
+	}, [selectedMailbox]);
+	const senderOptions = useMemo(
+		() => mailboxes.flatMap((mailbox) => {
+			const addresses = mailbox.senderAddresses?.length
+				? mailbox.senderAddresses
+				: [`${mailbox.localPart}@${mailbox.hostname}`];
+			return addresses.map((address) => ({ mailbox, address }));
+		}),
+		[mailboxes],
 	);
+	const fromAddr = selectedMailbox && selectedFrom
+		? formatEmailAddress(selectedFrom, selectedMailbox.displayName)
+		: "";
+
+	useEffect(() => {
+		if (!senderAddresses.length) {
+			setSelectedFrom("");
+			return;
+		}
+		if (!senderAddresses.includes(selectedFrom)) setSelectedFrom(senderAddresses[0]);
+	}, [selectedFrom, senderAddresses]);
 
 	useEffect(() => {
 		if (!toast) return;
@@ -72,6 +91,7 @@ export function ComposeForm({
 				setSubject(draft.subject ?? "");
 				setText(draft.textBody ?? "");
 				setLoadedDraftMailboxId(draft.mailboxId);
+				setLoadedDraftFrom(getEmailAddress(draft.fromAddr).toLowerCase());
 			})
 			.catch((err) => {
 				if (cancelled) return;
@@ -94,6 +114,11 @@ export function ComposeForm({
 		const draftMailbox = mailboxes.find((mailbox) => mailbox.id === loadedDraftMailboxId);
 		if (draftMailbox) setSelectedMailbox(draftMailbox);
 	}, [loadedDraftMailboxId, mailboxes, selectedMailbox?.id, setSelectedMailbox]);
+
+	useEffect(() => {
+		if (!loadedDraftFrom || !senderAddresses.includes(loadedDraftFrom)) return;
+		setSelectedFrom(loadedDraftFrom);
+	}, [loadedDraftFrom, senderAddresses]);
 
 	useEffect(() => {
 		const hasContent = to.trim() || subject.trim() || text.trim();
@@ -187,6 +212,13 @@ export function ComposeForm({
 		if (attachmentInput.current) attachmentInput.current.value = "";
 	}
 
+	function selectSender(value: string) {
+		const option = senderOptions.find((item) => `${item.mailbox.id}|${item.address}` === value);
+		if (!option) return;
+		setSelectedFrom(option.address);
+		if (selectedMailbox?.id !== option.mailbox.id) setSelectedMailbox(option.mailbox);
+	}
+
 	const frameClass =
 		mode === "popup"
 			? "fixed bottom-4 right-4 z-40 flex h-[min(520px,calc(100vh-88px))] w-[min(560px,calc(100vw-32px))] flex-col overflow-hidden rounded-lg border border-neutral-200 bg-white shadow-2xl"
@@ -218,14 +250,20 @@ export function ComposeForm({
 				</div>
 				<div className="border-b border-neutral-100 px-4 py-1">
 					<Label htmlFor={`${mode}-from`} className="sr-only">From</Label>
-					<Input
+					<Select
 						id={`${mode}-from`}
-						value={fromAddr}
+						value={selectedMailbox && selectedFrom ? `${selectedMailbox.id}|${selectedFrom}` : ""}
+						onChange={(event) => selectSender(event.target.value)}
 						placeholder="Select a mailbox first"
-						readOnly
 						required
-						className="h-8 border-0 px-0 py-1 shadow-none focus-visible:ring-0"
-					/>
+						disabled={loadingDraft || senderOptions.length === 0}
+						className="h-8 border-0 px-0 py-1 text-sm shadow-none focus-visible:ring-0"
+					>
+						{senderOptions.length === 0 && <option value="">Select a mailbox first</option>}
+						{senderOptions.map(({ mailbox, address }) => (
+							<option key={`${mailbox.id}|${address}`} value={`${mailbox.id}|${address}`}>{address}</option>
+						))}
+					</Select>
 				</div>
 				<div className="border-b border-neutral-100 px-4 py-1">
 					<Label htmlFor={`${mode}-to`} className="sr-only">To</Label>

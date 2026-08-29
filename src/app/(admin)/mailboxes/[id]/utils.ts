@@ -17,11 +17,14 @@ export async function fetchMailbox(id: string): Promise<MailboxDetail> {
 	return json.mailbox;
 }
 
-export async function updateMailboxName(id: string, displayName: string): Promise<MailboxDetail> {
+export async function updateMailboxSettings(
+	id: string,
+	input: { displayName: string; useAllDomains: boolean },
+): Promise<MailboxDetail> {
 	const res = await authFetch(`/api/mailboxes/${id}`, {
 		method: "PATCH",
 		headers: { "Content-Type": "application/json" },
-		body: JSON.stringify({ displayName }),
+		body: JSON.stringify(input),
 	});
 	const json = (await res.json()) as MailboxDetailResponse;
 

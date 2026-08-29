@@ -40,6 +40,14 @@ export async function removeBackup(id: string): Promise<void> {
 	if (!response.ok) throw new Error(data.error ?? "Failed to delete backup");
 }
 
+export async function restoreBackup(file: File): Promise<void> {
+	const form = new FormData();
+	form.set("backup", file);
+	const response = await authFetch("/api/backups/restore", { method: "POST", body: form });
+	const data = (await response.json()) as { error?: string };
+	if (!response.ok) throw new Error(data.error ?? "Failed to restore backup");
+}
+
 export async function downloadBackup(backup: BackupItem): Promise<void> {
 	const response = await authFetch(`/api/backups/${backup.id}/download`);
 	if (!response.ok) {

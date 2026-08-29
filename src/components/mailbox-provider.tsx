@@ -26,6 +26,7 @@ export type MailboxOption = {
 	type?: "personal" | "shared";
 	permission?: "read_only" | "send_as" | "send_on_behalf" | "full_access";
 	isPrimary?: boolean;
+	senderAddresses?: string[];
 };
 
 type MailboxContextValue = {

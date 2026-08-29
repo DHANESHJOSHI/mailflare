@@ -6,6 +6,7 @@ import { hashPassword } from "@/lib/auth/password";
 import { newId } from "@/lib/ids";
 import { createUserAccountSchema } from "@/lib/validators";
 import { ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
+import { ensureMailboxDomainRouting } from "@/lib/mailboxes/domain-addresses";
 import type { CreateUserAccountInput } from "./types";
 import {
 	accountListItemFromUser,
@@ -66,13 +67,15 @@ export async function POST(request: Request) {
 				disabled: users.disabled,
 				createdAt: users.createdAt,
 			});
+		const mailboxId = newId("mbx");
 		await db.insert(mailboxes).values({
-			id: newId("mbx"),
+			id: mailboxId,
 			userId,
 			domainId: domain.id,
 			localPart: username,
 			displayName: username,
 		});
+		await ensureMailboxDomainRouting(access.env, db, { id: mailboxId, domainId: domain.id, localPart: username, useAllDomains: true });
 
 		return NextResponse.json({ account: accountListItemFromUser(account) }, { status: 201 });
 	} catch (error) {

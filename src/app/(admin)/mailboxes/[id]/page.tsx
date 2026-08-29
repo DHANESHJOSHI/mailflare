@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -23,7 +24,7 @@ import {
   getMailboxAddress,
   grantSharedInboxAccess,
   revokeSharedInboxAccess,
-  updateMailboxName,
+  updateMailboxSettings,
 } from "./utils";
 import MailboxAvatarForm from "./MailboxAvatarForm";
 
@@ -32,6 +33,7 @@ export default function MailboxSettingsPage() {
   const mailboxId = params.id;
   const qc = useQueryClient();
   const [displayName, setDisplayName] = useState("");
+  const [useAllDomains, setUseAllDomains] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState("");
 
   const mailbox = useQuery({
@@ -41,11 +43,14 @@ export default function MailboxSettingsPage() {
   });
 
   useEffect(() => {
-    if (mailbox.data) setDisplayName(mailbox.data.displayName ?? "");
+    if (mailbox.data) {
+      setDisplayName(mailbox.data.displayName ?? "");
+      setUseAllDomains(mailbox.data.useAllDomains);
+    }
   }, [mailbox.data]);
 
   const updateName = useMutation({
-    mutationFn: () => updateMailboxName(mailboxId, displayName),
+    mutationFn: () => updateMailboxSettings(mailboxId, { displayName, useAllDomains }),
     onSuccess: (updatedMailbox) => {
       qc.setQueryData(["mailbox", mailboxId], updatedMailbox);
       qc.invalidateQueries({ queryKey: ["mailboxes"] });
@@ -129,6 +134,19 @@ export default function MailboxSettingsPage() {
               disabled={mailbox.isLoading || updateName.isPending}
             />
           </div>
+          <label className="flex items-start gap-3 rounded-xl bg-neutral-50 p-4">
+            <Checkbox
+              checked={useAllDomains}
+              onChange={(event) => setUseAllDomains(event.target.checked)}
+              disabled={mailbox.isLoading || updateName.isPending}
+            />
+            <span>
+              <span className="block text-sm font-medium text-neutral-900">Use all domains</span>
+              <span className="mt-1 block text-sm text-neutral-500">
+                Receive and send mail as this username on every active domain in this admin account.
+              </span>
+            </span>
+          </label>
           {updateName.isError && (
             <p className="text-sm text-red-600">
               {updateName.error instanceof Error

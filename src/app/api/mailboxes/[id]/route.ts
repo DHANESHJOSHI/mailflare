@@ -5,6 +5,7 @@ import { mailboxes, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
+import { ensureMailboxDomainRouting } from "@/lib/mailboxes/domain-addresses";
 import { updateMailboxSchema } from "@/lib/validators";
 import type { MailboxRouteParams } from "./types";
 import { getMailboxUpdateValues, selectMailboxForUser } from "./utils";
@@ -59,6 +60,10 @@ export async function PATCH(request: Request, { params }: MailboxRouteParams) {
 			.update(mailboxes)
 			.set(updateValues)
 			.where(eq(mailboxes.id, id));
+	}
+	if (updateValues.useAllDomains) {
+		const [routingMailbox] = await db.select().from(mailboxes).where(eq(mailboxes.id, id)).limit(1);
+		if (routingMailbox) await ensureMailboxDomainRouting(env, db, routingMailbox);
 	}
 
 	const [mailbox] = await selectMailboxForUser(db, user.id, id);

@@ -4,6 +4,7 @@ export type MailboxDetail = {
 	domainId: string;
 	localPart: string;
 	displayName: string | null;
+	useAllDomains: boolean;
 	hasAvatar?: boolean;
 	type?: "personal" | "shared";
 	permission?: "read_only" | "send_as" | "send_on_behalf" | "full_access";

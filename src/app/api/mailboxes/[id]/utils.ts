@@ -11,8 +11,9 @@ export function selectMailboxForUser(db: Db, userId: string, mailboxId: string) 
 			id: mailboxes.id,
 			userId: mailboxes.userId,
 			domainId: mailboxes.domainId,
-			localPart: mailboxes.localPart,
-			displayName: mailboxes.displayName,
+		localPart: mailboxes.localPart,
+		displayName: mailboxes.displayName,
+		useAllDomains: mailboxes.useAllDomains,
 			avatarKey: mailboxes.avatarKey,
 			type: mailboxes.type,
 			disabled: mailboxes.disabled,
@@ -26,8 +27,8 @@ export function selectMailboxForUser(db: Db, userId: string, mailboxId: string) 
 }
 
 export function getMailboxUpdateValues(input: MailboxUpdateValues): MailboxUpdateValues {
-	if (!("displayName" in input)) return {};
-
-	const displayName = input.displayName?.trim() || null;
-	return { displayName };
+	const values: MailboxUpdateValues = {};
+	if ("displayName" in input) values.displayName = input.displayName?.trim() || null;
+	if ("useAllDomains" in input) values.useAllDomains = input.useAllDomains;
+	return values;
 }

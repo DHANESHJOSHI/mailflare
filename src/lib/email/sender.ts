@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { domains, mailboxes, users } from "@/db/schema";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import { formatEmailAddress, getEmailAddress } from "@/lib/email/address";
+import { getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
 
 export async function getAuthorizedSenderAddress(
 	env: CloudflareEnv,
@@ -17,9 +18,11 @@ export async function getAuthorizedSenderAddress(
 	const db = getDb(env);
 	const [mailbox] = await db
 		.select({
-			localPart: mailboxes.localPart,
-			displayName: mailboxes.displayName,
-			hostname: domains.hostname,
+		localPart: mailboxes.localPart,
+		displayName: mailboxes.displayName,
+		hostname: domains.hostname,
+		domainId: mailboxes.domainId,
+		useAllDomains: mailboxes.useAllDomains,
 			id: mailboxes.id,
 		})
 		.from(mailboxes)
@@ -37,21 +40,22 @@ export async function getAuthorizedSenderAddress(
 	}
 
 	const requestedAddress = getEmailAddress(input.from);
-	const mailboxAddress = `${mailbox.localPart}@${mailbox.hostname}`;
-	if (requestedAddress.toLowerCase() !== mailboxAddress.toLowerCase()) {
+	const permittedAddresses = await getMailboxDomainAddresses(db, mailbox);
+	if (!permittedAddresses.includes(requestedAddress.toLowerCase())) {
 		throw new Error("Sender address does not match the selected mailbox");
 	}
+	const senderAddress = requestedAddress.toLowerCase();
 
 	if (access.canSendAs) {
 		return {
-			fromAddr: formatEmailAddress(mailboxAddress, mailbox.displayName),
+			fromAddr: formatEmailAddress(senderAddress, mailbox.displayName),
 			mailboxId: mailbox.id,
 		};
 	}
 
-	const mailboxName = mailbox.displayName || mailboxAddress;
+	const mailboxName = mailbox.displayName || senderAddress;
 	return {
-		fromAddr: formatEmailAddress(mailboxAddress, `${actor.name} on behalf of ${mailboxName}`),
+		fromAddr: formatEmailAddress(senderAddress, `${actor.name} on behalf of ${mailboxName}`),
 		mailboxId: mailbox.id,
 	};
 }

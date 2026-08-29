@@ -2,6 +2,7 @@ import { eq, and, desc } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
 import { domains, folders, mailboxes, routingRules } from "@/db/schema";
 import { getEmailAddress } from "@/lib/email/address";
+import { getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
 import { parseAddress } from "@/lib/utils";
 
 export type ResolvedMailbox = {
@@ -40,11 +41,12 @@ export async function resolveInboundAddress(
 
 	if (!domain) return null;
 
-	const [mailbox] = await db
+	const [exactMailbox] = await db
 		.select()
 		.from(mailboxes)
 		.where(and(eq(mailboxes.domainId, domain.id), eq(mailboxes.localPart, parsed.local)))
 		.limit(1);
+	const mailbox = exactMailbox ?? await resolveMailboxDomainAlias(db, domain.hostname, parsed.local);
 
 	if (!mailbox) return null;
 
@@ -60,6 +62,21 @@ export async function resolveInboundAddress(
 			displayName: mailbox.displayName,
 		},
 	};
+}
+
+async function resolveMailboxDomainAlias(db: AppDatabase, hostname: string, localPart: string) {
+	const candidates = await db
+		.select()
+		.from(mailboxes)
+		.where(and(eq(mailboxes.localPart, localPart), eq(mailboxes.useAllDomains, true), eq(mailboxes.disabled, false)));
+
+	for (const mailbox of candidates) {
+		const addresses = await getMailboxDomainAddresses(db, mailbox);
+		if (addresses.includes(`${localPart}@${hostname}`.toLowerCase())) {
+			return mailbox;
+		}
+	}
+	return null;
 }
 
 export async function resolveInboxRuleDestination(

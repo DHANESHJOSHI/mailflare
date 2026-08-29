@@ -10,6 +10,7 @@ import { newId } from "@/lib/ids";
 import { firstRunRegisterSchema } from "@/lib/validators";
 import { addDomainForUser } from "@/lib/domains/service";
 import { ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
+import { ensureMailboxDomainRouting } from "@/lib/mailboxes/domain-addresses";
 import { readJsonBody } from "@/lib/http/request";
 import { RequestBodyTooLargeError } from "@/lib/http/errors";
 import { verifyTurnstileToken } from "@/lib/auth/turnstile";
@@ -63,13 +64,15 @@ export async function POST(request: Request) {
 			enableSending: true,
 		});
 		await ensureEmailRoutingRuleToWorker(env, domain.zoneId, email);
+		const mailboxId = newId("mbx");
 		await db.insert(mailboxes).values({
-			id: newId("mbx"),
+			id: mailboxId,
 			userId,
 			domainId: domain.id,
 			localPart: username,
 			displayName: username,
 		});
+		await ensureMailboxDomainRouting(env, db, { id: mailboxId, domainId: domain.id, localPart: username, useAllDomains: true });
 	} catch (err) {
 		await db.delete(users).where(eq(users.id, userId));
 		const message = err instanceof Error ? err.message : "Domain setup failed";

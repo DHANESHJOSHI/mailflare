@@ -123,6 +123,7 @@ export const accountMailboxSchema = z.object({
 
 export const updateMailboxSchema = z.object({
 	displayName: z.string().max(100).nullable().optional(),
+	useAllDomains: z.boolean().optional(),
 });
 
 export const folderSchema = z.object({

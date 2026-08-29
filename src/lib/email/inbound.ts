@@ -57,11 +57,8 @@ export async function processInboundMessage(
 	const parsed = await parseRawMime(buffer);
 	const messageId = newId("msg");
 	const snippet = buildSnippet(parsed.text, parsed.html);
-	const mailboxAddress = `${decision.mailbox.localPart}@${decision.mailbox.hostname}`;
-	const mailboxHeader = formatEmailAddress(mailboxAddress, decision.mailbox.displayName ?? decision.mailbox.localPart);
-	const toAddr = parsed.toAddr && getEmailAddress(parsed.toAddr).toLowerCase() !== mailboxAddress.toLowerCase()
-		? parsed.toAddr
-		: mailboxHeader;
+	const deliveredAddress = getEmailAddress(payload.to) || `${decision.mailbox.localPart}@${decision.mailbox.hostname}`;
+	const toAddr = formatEmailAddress(deliveredAddress, decision.mailbox.displayName ?? decision.mailbox.localPart);
 	const fromAddr = parsed.fromAddr ?? payload.from;
 	const destination = await resolveInboxRuleDestination(db, {
 		mailboxId: decision.mailbox.mailboxId,
