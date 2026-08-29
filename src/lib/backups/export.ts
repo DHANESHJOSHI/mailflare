@@ -47,16 +47,15 @@ function createInsertStatement(db: D1Database, table: DatabaseBackupTable, row: 
 	const columns = Object.keys(row);
 	if (columns.length === 0) throw new Error(`Backup contains an invalid ${table} record`);
 	const placeholders = columns.map(() => "?").join(", ");
-	return db.prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`).bind(...columns.map((column) => row[column]));
+	const identifiers = columns.map((column) => `\`${column.replaceAll("`", "``")}\``).join(", ");
+	return db.prepare(`INSERT INTO ${table} (${identifiers}) VALUES (${placeholders})`).bind(...columns.map((column) => row[column]));
 }
 
 function validateDatabaseBackup(document: DatabaseBackupDocument): void {
 	for (const table of BACKUP_TABLES) {
 		for (const row of document.tables[table]) {
-			for (const [column, value] of Object.entries(row)) {
-				if (!/^[a-z_]+$/.test(column) || (value !== null && typeof value !== "string" && typeof value !== "number")) {
-					throw new Error(`Backup contains an invalid ${table} record`);
-				}
+			if (!row || typeof row !== "object" || Array.isArray(row)) {
+				throw new Error(`Backup contains an invalid ${table} record`);
 			}
 		}
 	}

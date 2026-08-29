@@ -122,7 +122,7 @@ export default function SettingsImportPage() {
       const discoveredFolders = await fetchImapFolders(imapForm);
       const expandedSources: ImportSourceItem[] = [];
       for (const source of selectedSources) {
-        if (source.id === "system:folders") {
+        if (source.id === "system:others") {
           expandedSources.push(
             ...filterCustomImapFolders(discoveredFolders, selectedSources).map(
               getFolderImportSource,
@@ -244,10 +244,10 @@ export default function SettingsImportPage() {
                     imported once into {fileImportSource.label}
                   </p>
                 </div>
-                {selectedSections.includes("folders") && (
-                  <p className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
-                    Folders can be imported automatically from IMAP. File import
-                    cannot discover source folders.
+                {selectedSections.includes("others") && (
+						<p className="rounded-lg border border-amber-100 bg-amber-50 px-4 py-3 text-sm text-amber-700">
+							Other folders can be imported automatically from IMAP. File import
+							cannot discover which section a message belongs to.
                   </p>
                 )}
                 <Button

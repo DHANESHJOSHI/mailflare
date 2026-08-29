@@ -15,7 +15,7 @@ export const importSourceOptions: ImportSourceOption[] = [
 	{ value: "archived", label: "Archived", imapFolder: "Archive", destination: "system:archived", system: true },
 	{ value: "spam", label: "Spam", imapFolder: "Spam", destination: "system:spam", system: true },
 	{ value: "trash", label: "Trash", imapFolder: "Trash", destination: "system:trash", system: true },
-	{ value: "folders", label: "Folders", imapFolder: "", destination: "" },
+	{ value: "others", label: "Others", imapFolder: "", destination: "system:inbox" },
 ];
 
 export function getImportSourceOption(section: ImportSourceSection): ImportSourceOption {
@@ -46,7 +46,7 @@ export function getFolderImportSource(folderName: string): ImportSourceItem {
 }
 
 export function resolveImapSourceFolder(source: ImportSourceItem, folders: string[]): string {
-	if (!source.sourceSection || source.sourceSection === "folders") return source.imapFolder;
+	if (!source.sourceSection || source.sourceSection === "others") return source.imapFolder;
 	const match = findFolderMatch(folders, getFolderAliases(source.sourceSection));
 	return match ?? source.imapFolder;
 }
@@ -65,7 +65,7 @@ export function filterCustomImapFolders(folders: string[], selectedSources: Impo
 }
 
 export function getFileImportSource(sources: ImportSourceItem[]): ImportSourceItem {
-	return sources.find((source) => source.id !== "system:folders") ?? getSelectedImportSources(["inbox"])[0];
+	return sources.find((source) => source.id !== "system:others") ?? getSelectedImportSources(["inbox"])[0];
 }
 
 export async function ensureImportDestination(
