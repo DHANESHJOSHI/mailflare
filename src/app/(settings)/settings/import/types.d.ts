@@ -40,3 +40,9 @@ export type ImportFolderSummary = {
 	id: string;
 	name: string;
 };
+
+export type ImportProgress = {
+	completed: number;
+	label: string;
+	total: number;
+};

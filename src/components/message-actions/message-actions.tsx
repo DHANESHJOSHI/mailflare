@@ -2,7 +2,7 @@
 
 import { createElement, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Archive, Ban, Icon, Mail, MailOpen, MoreVertical, Reply, ShieldAlert, Trash2 } from "lucide-react";
+import { Archive, Ban, BellOff, Mail, MailOpen, MoreVertical, Reply, ShieldAlert, Trash2 } from "lucide-react";
 import { useCompose } from "@/components/compose/compose-context";
 import { Button } from "@/components/ui/button";
 import { Tooltip } from "@/components/ui/tooltip";
@@ -204,21 +204,22 @@ export function MessageActions({
 								<>
 									<button
 										type="button"
-										className="w-full rounded-lg px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
-										disabled={!unsubscribeUrl && status === "trash"}
-										onClick={() => void onUnsubscribe()}
-									>
-										Unsubscribe
+									className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100 disabled:cursor-not-allowed disabled:text-neutral-400"
+									disabled={!unsubscribeUrl && status === "trash"}
+									onClick={() => void onUnsubscribe()}
+								>
+									<BellOff className="h-4 w-4 shrink-0" />
+									Unsubscribe
 									</button>
 									<button
 										type="button"
-										className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
+									className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
 										onClick={() => void onBlockContact()}
 									>
 										<Ban className="h-4 w-4" />
 										Block contact
 									</button>
-									<hr />
+							<hr className="my-1 border-neutral-100" />
 								</>
 							)}
 							<p className="mt-1 px-3 pb-1 pt-2 text-sm font-medium text-neutral-500">
@@ -228,7 +229,7 @@ export function MessageActions({
 								<button
 									key={item.action}
 									type="button"
-									className="w-full rounded-lg px-3 py-2 text-neutral-700 hover:bg-neutral-100 flex flex-row gap-2 items-center cursor-pointer"
+									className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-neutral-700 hover:bg-neutral-100"
 									onClick={() => void runAction(item.action)}
 								>
 									{createElement(item.icon, { size: 16 })}

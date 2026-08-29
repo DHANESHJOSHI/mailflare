@@ -58,5 +58,5 @@ export function useMessages(
 		};
 	}, [enabled, filters?.limit, filters?.offset, filters?.query, filters?.read, filters?.title, folder, folderId, mailboxId]);
 
-	return { messages, unreadCount, isLoading, total, limit, offset };
+	return { messages, unreadCount, isLoading, total, limit, offset, updateMessages: setMessages };
 }

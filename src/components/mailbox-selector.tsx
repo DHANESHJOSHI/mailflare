@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Check, LogOut, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { CalendarDays, Check, LogOut, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { useMessageCounts } from "@/hooks/use-message-counts";
@@ -235,6 +235,14 @@ export function MailboxSelector() {
 							</div>
 							<Check className="h-5 w-5 shrink-0 text-blue-600" />
 						</div>
+						<Link
+							href="/calendar"
+							onClick={() => setOpen(false)}
+							className="mt-4 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-[#f2f6fc]"
+						>
+							<CalendarDays className="h-5 w-5 text-neutral-600" />
+							Calendar
+						</Link>
 					</div>
 
 					{otherMailboxes.length > 0 && (

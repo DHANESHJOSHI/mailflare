@@ -1,6 +1,7 @@
 import type { DatabaseBackupDocument, DatabaseBackupTable, DatabaseRecord } from "./types";
+import { mergeLegacyMessageBodies } from "./utils";
 
-const BACKUP_TABLES: DatabaseBackupTable[] = ["users", "domains", "mailboxes", "mailbox_access", "contacts", "folders", "api_keys", "messages", "message_bodies", "message_attachments", "outbound_jobs", "routing_rules", "webhooks", "webhook_deliveries", "sessions", "audit_logs", "backup_settings", "backups", "app_settings", "license_settings"];
+const BACKUP_TABLES: DatabaseBackupTable[] = ["users", "domains", "mailboxes", "mailbox_access", "contacts", "folders", "api_keys", "messages", "message_attachments", "outbound_jobs", "routing_rules", "webhooks", "webhook_deliveries", "sessions", "audit_logs", "backup_settings", "backups", "app_settings", "license_settings"];
 const INSERT_BATCH_SIZE = 50;
 
 export function getD1ExportConfigurationStatus(_env?: CloudflareEnv) {
@@ -19,6 +20,7 @@ export async function exportDatabaseRecords(db: D1Database): Promise<Uint8Array>
 
 export async function restoreDatabaseRecords(db: D1Database, content: ArrayBuffer): Promise<void> {
 	const document = parseDatabaseBackup(content);
+	mergeLegacyMessageBodies(document);
 	validateDatabaseBackup(document);
 	for (const table of [...BACKUP_TABLES].reverse()) await db.prepare(`DELETE FROM ${table}`).run();
 	for (const table of BACKUP_TABLES) {

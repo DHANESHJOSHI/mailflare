@@ -2,11 +2,11 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import type { MouseEvent } from "react";
+import { ChevronLeft, ChevronRight, ListFilter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tooltip } from "@/components/ui/tooltip";
-import { SkeletonRows } from "@/components/ui/skeleton";
 import { useCompose } from "@/components/compose/compose-context";
 import { useMailSearch } from "@/components/mail-search/mail-search-context";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
@@ -48,13 +48,27 @@ function MessageListRow({
 	const { openDraftComposer } = useCompose();
 	const [read, setRead] = useState(message.read);
 	const [starred, setStarred] = useState(message.starred);
+	useEffect(() => setRead(message.read), [message.read]);
+	useEffect(() => setStarred(message.starred), [message.starred]);
 	const rowMessage = { ...message, read, starred };
 	const unread = rowMessage.direction === "inbound" && !rowMessage.read;
 	const draggable = config.folder === "inbox" && message.direction === "inbound";
 	const party = getMessageParty(rowMessage, config.folder, currentAccountName);
 	const preview = getMessagePreview(rowMessage, config.folder);
 	const href = `${config.hrefPrefix}/${message.id}`;
-	const navigation = useMessageNavigation(href, message.id);
+	const navigation = useMessageNavigation(href, rowMessage);
+
+	function onMessageNavigate(event: MouseEvent<HTMLAnchorElement>) {
+		if (unread && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey) {
+			setRead(true);
+			dispatchMessageCountsDelta({ inboxUnreadDelta: -1 });
+			void runBulkMessageAction([message.id], "read", false).catch(() => {
+				setRead(false);
+				dispatchMessageCountsDelta({ inboxUnreadDelta: 1 });
+			});
+		}
+		navigation.onNavigate(event, unread);
+	}
 
 	if (compact && config.folder !== "drafts") {
 		return (
@@ -79,7 +93,7 @@ function MessageListRow({
 					className="mt-1 h-4 w-4 rounded border-neutral-300"
 					aria-label={`Select message from ${party}`}
 				/>
-				<Link href={href} onClick={navigation.onNavigate} className="min-w-0">
+				<Link href={href} onClick={onMessageNavigate} className="min-w-0">
 					<span className="flex items-baseline justify-between gap-3">
 						<span className={getMessagePartyClassName(message, config.folder)}>
 							{party}
@@ -181,7 +195,7 @@ function MessageListRow({
 				className="h-4 w-4 rounded border-neutral-300"
 				aria-label="Select message"
 			/>
-			<Link href={href} onClick={navigation.onNavigate} className="contents">
+			<Link href={href} onClick={onMessageNavigate} className="contents">
 				{content}
 			</Link>
 			{(config.folder === "inbox" || config.folder === "snoozed") && message.direction === "inbound" && (
@@ -222,10 +236,12 @@ export function MessageFolderPage({
 		Array<{ id: string; read: boolean }>
 	>([]);
 	const [pendingBulkAction, setPendingBulkAction] = useState(false);
-	const { messages, isLoading, total, limit } = useMessages(config.folder, selectedMailbox?.id, {
+	const [unreadOnly, setUnreadOnly] = useState(false);
+	const { messages, isLoading, total, limit, updateMessages } = useMessages(config.folder, selectedMailbox?.id, {
 		query,
 		limit: pageSize,
 		offset,
+		read: unreadOnly ? "unread" : "all",
 	}, !mailboxesLoading, config.folderId);
 	const { counts } = useMessageCounts(selectedMailbox?.id, !mailboxesLoading);
 	usePageLoading(mailboxesLoading || isLoading);
@@ -252,7 +268,7 @@ export function MessageFolderPage({
 	useEffect(() => {
 		setOffset(0);
 		setSelectedMessages([]);
-	}, [query, selectedMailbox?.id, config.folder, config.folderId]);
+	}, [query, selectedMailbox?.id, config.folder, config.folderId, unreadOnly]);
 
 	useEffect(() => {
 		setSelectedMessages([]);
@@ -298,9 +314,33 @@ export function MessageFolderPage({
 		if (selectedIds.length === 0) return;
 
 		setPendingBulkAction(true);
+		const previousMessages = messages;
+		const readValue = action === "read" ? true : action === "unread" ? false : null;
+		const changedMessages = readValue === null
+			? []
+			: messages.filter((message) => selectedIds.includes(message.id) && message.read !== readValue);
+		if (readValue !== null) {
+			updateMessages((current) => current.map((message) =>
+				selectedIds.includes(message.id) ? { ...message, read: readValue } : message,
+			));
+			setSelectedMessages((current) => current.map((message) => ({ ...message, read: readValue })));
+			const inboxUnreadDelta = changedMessages
+				.filter((message) => message.direction === "inbound")
+				.reduce((total, message) => total + (readValue ? (message.read ? 0 : -1) : (message.read ? 1 : 0)), 0);
+			if (inboxUnreadDelta) dispatchMessageCountsDelta({ inboxUnreadDelta });
+		}
 		try {
 			await runBulkMessageAction(selectedIds, action);
 			setSelectedMessages([]);
+		} catch (error) {
+			if (readValue !== null) {
+				updateMessages(previousMessages);
+				const inboxUnreadDelta = changedMessages
+					.filter((message) => message.direction === "inbound")
+					.reduce((total, message) => total + (readValue ? (message.read ? 0 : 1) : (message.read ? -1 : 0)), 0);
+				if (inboxUnreadDelta) dispatchMessageCountsDelta({ inboxUnreadDelta });
+			}
+			throw error;
 		} finally {
 			setPendingBulkAction(false);
 		}
@@ -365,6 +405,21 @@ export function MessageFolderPage({
 								<ChevronRight className="h-4 w-4" />
 							</Button>
 						</Tooltip>
+						{config.folder === "inbox" && (
+							<Tooltip label={unreadOnly ? "Showing unread emails" : "Show unread emails only"}>
+								<Button
+									type="button"
+									variant="ghost"
+									size="sm"
+									aria-label="Show unread emails only"
+									aria-pressed={unreadOnly}
+									onClick={() => setUnreadOnly((current) => !current)}
+									className={unreadOnly ? "bg-blue-100 text-blue-700 hover:bg-blue-100" : undefined}
+								>
+									<ListFilter className="h-4 w-4" />
+								</Button>
+							</Tooltip>
+						)}
 						{!compact && headerIcons.map((Icon, index) => (
 							<Icon key={index} className="h-4 w-4" />
 						))}
@@ -387,7 +442,6 @@ export function MessageFolderPage({
 						dragMessageIds={selectedIds.includes(message.id) ? selectedIds : [message.id]}
 					/>
 				))}
-				{isLoading && <SkeletonRows count={7} compact={compact} />}
 				{!isLoading && messages.length === 0 && (
 					<p className="px-6 py-4 text-sm text-neutral-500">
 						{hasActiveFilters ? "No messages match these filters" : config.emptyText}

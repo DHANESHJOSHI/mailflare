@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { messageBodies, messages, outboundJobs } from "@/db/schema";
+import { messages, outboundJobs } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { buildSnippet } from "@/lib/email/parse";
 import { dispatchWebhooks } from "@/lib/email/webhooks";
@@ -43,14 +43,9 @@ export async function sendEmail(env: CloudflareEnv, input: SendEmailInput): Prom
 		toAddr: input.to,
 		subject: input.subject,
 		snippet,
-		status: "queued",
-	});
-
-	await db.insert(messageBodies).values({
-		id: newId(),
-		messageId,
 		textBody: input.text ?? null,
 		htmlBody: input.html ?? null,
+		status: "queued",
 	});
 	try {
 		await storeMessageAttachments(env, messageId, attachments);

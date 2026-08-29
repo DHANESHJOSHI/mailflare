@@ -1,6 +1,6 @@
 import { asc, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { messageBodies, messages } from "@/db/schema";
+import { messages } from "@/db/schema";
 
 function escapeHeader(value: string | null): string {
 	return (value ?? "").replace(/\r?\n/g, " ").trim();
@@ -26,11 +26,10 @@ export async function exportMailboxToMbox(env: CloudflareEnv, mailboxId: string)
 			direction: messages.direction,
 			status: messages.status,
 			createdAt: messages.createdAt,
-			textBody: messageBodies.textBody,
-			htmlBody: messageBodies.htmlBody,
+			textBody: messages.textBody,
+			htmlBody: messages.htmlBody,
 		})
 		.from(messages)
-		.leftJoin(messageBodies, eq(messageBodies.messageId, messages.id))
 		.where(eq(messages.mailboxId, mailboxId))
 		.orderBy(asc(messages.createdAt));
 

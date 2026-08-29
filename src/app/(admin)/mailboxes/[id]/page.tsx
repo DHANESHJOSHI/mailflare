@@ -216,7 +216,7 @@ export default function MailboxSettingsPage() {
               <Select
                 value={selectedUserId}
                 onChange={(event) => setSelectedUserId(event.target.value)}
-                className="h-10 min-w-0 flex-1 rounded-md border border-neutral-200 bg-white px-3 text-sm"
+                className="h-10 min-w-0 flex-1 text-sm"
               >
                 <option value="">Choose an account</option>
                 {(sharedAccess.data?.availableUsers ?? [])

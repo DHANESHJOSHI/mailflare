@@ -18,6 +18,8 @@ import { getMessageBackHref } from "@/components/message-actions/utils";
 import type { MessageAttachment, MessageDetailResponse } from "./types";
 import {
   fetchMessageDetail,
+  fetchMessageMetadata,
+  getCachedMessageDetailForDisplay,
   getMessageBodyDisplay,
   getMessageHeaderParties,
   resolveInlineAttachmentUrls,
@@ -39,6 +41,19 @@ export default function MessageDetailPage() {
     let cancelled = false;
 
     async function loadMessage() {
+      const cachedData = getCachedMessageDetailForDisplay(messageId);
+      if (cachedData?.message && cachedData.body) {
+        setData(cachedData);
+        setLoading(false);
+        if (cachedData.attachments !== undefined) return;
+        try {
+          const metadata = await fetchMessageMetadata(messageId);
+          if (!cancelled) setData((current) => current ? { ...current, ...metadata } : current);
+        } catch {
+          // The message body remains usable if supplemental metadata is unavailable.
+        }
+        return;
+      }
       setLoading(true);
       const nextData = await fetchMessageDetail(messageId);
       if (!cancelled) {
@@ -155,9 +170,9 @@ export default function MessageDetailPage() {
         </div>
         <div className="prose max-w-none text-neutral-900">
           {htmlBody ? (
-            <div dangerouslySetInnerHTML={{ __html: htmlBody }} />
+            <div className="mx-auto" dangerouslySetInnerHTML={{ __html: htmlBody }} />
           ) : (
-            <pre className="whitespace-pre-wrap text-sm text">
+            <pre className="whitespace-pre-wrap text-sm text mx-auto">
               {cloudAttachmentResult.content}
             </pre>
           )}

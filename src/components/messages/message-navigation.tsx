@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import type { MouseEvent } from "react";
-import { waitForNavigationProgress } from "@/components/components-nav-utils";
-import { fetchCachedMessageDetail } from "@/lib/messages/detail-cache";
+import { primeMessageDetail } from "@/lib/messages/detail-cache";
+import type { Message } from "@/hooks/types";
 import type { MessageNavigationState } from "./message-navigation-types";
 
-export function useMessageNavigation(href: string, messageId: string): MessageNavigationState {
+export function useMessageNavigation(href: string, message: Message): MessageNavigationState {
 	const pathname = usePathname();
 	const router = useRouter();
 	const [progress, setProgress] = useState<number | null>(null);
@@ -19,23 +19,15 @@ export function useMessageNavigation(href: string, messageId: string): MessageNa
 		return () => window.clearTimeout(timer);
 	}, [pathname]);
 
-	async function onNavigate(event: MouseEvent<HTMLAnchorElement>) {
+	function onNavigate(event: MouseEvent<HTMLAnchorElement>, markRead = false) {
 		if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
 		event.preventDefault();
+		primeMessageDetail({ ...message, read: markRead || message.read });
 		setProgress(12);
-		const timer = window.setInterval(() => {
-			setProgress((current) => current === null ? 12 : Math.min(90, current + 8));
-		}, 80);
 		try {
-			router.prefetch(href);
-			await Promise.all([fetchCachedMessageDetail(messageId), waitForNavigationProgress()]);
-			setProgress(100);
-			await waitForNavigationProgress(160);
 			router.push(href);
 		} catch {
 			setProgress(null);
-		} finally {
-			window.clearInterval(timer);
 		}
 	}
 

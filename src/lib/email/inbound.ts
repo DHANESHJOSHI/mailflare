@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { messageBodies, messages } from "@/db/schema";
+import { messages } from "@/db/schema";
 import { newId } from "@/lib/ids";
 import { buildSnippet, parseRawMime } from "@/lib/email/parse";
 import { resolveInboundAddress, resolveInboxRuleDestination } from "@/lib/email/routing";
@@ -85,17 +85,13 @@ export async function processInboundMessage(
 			toAddr,
 			subject: parsed.subject,
 			snippet,
+			textBody: parsed.text,
+			htmlBody: parsed.html,
+			rawR2Key: payload.rawR2Key,
 			status: destination.status,
 			threadId: parsed.messageId,
 		});
 
-		await db.insert(messageBodies).values({
-			id: newId(),
-			messageId,
-			textBody: parsed.text,
-			htmlBody: parsed.html,
-			rawR2Key: payload.rawR2Key,
-		});
 		await storeMessageAttachments(env, messageId, parsed.attachments, { validate: false });
 	} catch (error) {
 		await db.delete(messages).where(eq(messages.id, messageId));
@@ -146,15 +142,10 @@ export async function getMessageWithBody(env: CloudflareEnv, userId: string, mes
 		.where(eq(messages.id, messageId))
 		.limit(1);
 	if (!message || message.userId !== userId) return null;
-	const [body] = await db
-		.select()
-		.from(messageBodies)
-		.where(eq(messageBodies.messageId, messageId))
-		.limit(1);
 	const contactNames = await getMessageContactNames(env, userId, message.fromAddr, message.toAddr);
 	const attachments = await listMessageAttachments(env, messageId);
-	const unsubscribeUrl = await getUnsubscribeUrlFromRawR2Key(env, body?.rawR2Key ?? null);
-	return { message: { ...message, ...contactNames }, body, attachments, unsubscribeUrl };
+	const unsubscribeUrl = await getUnsubscribeUrlFromRawR2Key(env, message.rawR2Key);
+	return { message: { ...message, ...contactNames }, body: message, attachments, unsubscribeUrl };
 }
 
 export async function getMessageWithBodyForUser(env: CloudflareEnv, user: SessionUser, messageId: string) {
@@ -163,13 +154,25 @@ export async function getMessageWithBodyForUser(env: CloudflareEnv, user: Sessio
 	if (!message?.mailboxId) return null;
 	const access = await getMailboxAccessLevel(db, user, message.mailboxId);
 	if (!access?.canRead) return null;
-	const [body] = await db
-		.select()
-		.from(messageBodies)
-		.where(eq(messageBodies.messageId, messageId))
-		.limit(1);
 	const contactNames = await getMessageContactNames(env, message.userId, message.fromAddr, message.toAddr);
 	const attachments = await listMessageAttachments(env, messageId);
-	const unsubscribeUrl = await getUnsubscribeUrlFromRawR2Key(env, body?.rawR2Key ?? null);
-	return { message: { ...message, ...contactNames }, body, attachments, unsubscribeUrl };
+	const unsubscribeUrl = await getUnsubscribeUrlFromRawR2Key(env, message.rawR2Key);
+	return { message: { ...message, ...contactNames }, body: message, attachments, unsubscribeUrl };
+}
+
+export async function getMessageMetadataForUser(env: CloudflareEnv, user: SessionUser, messageId: string) {
+	const db = getDb(env);
+	const [message] = await db
+		.select({ mailboxId: messages.mailboxId, rawR2Key: messages.rawR2Key })
+		.from(messages)
+		.where(eq(messages.id, messageId))
+		.limit(1);
+	if (!message?.mailboxId) return null;
+	const access = await getMailboxAccessLevel(db, user, message.mailboxId);
+	if (!access?.canRead) return null;
+	const [attachments, unsubscribeUrl] = await Promise.all([
+		listMessageAttachments(env, messageId),
+		getUnsubscribeUrlFromRawR2Key(env, message.rawR2Key),
+	]);
+	return { attachments, unsubscribeUrl };
 }

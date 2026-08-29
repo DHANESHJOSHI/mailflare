@@ -7,7 +7,7 @@ import { getDb } from "@/db";
 import { messages } from "@/db/schema";
 import { getContactDisplayNameMap } from "@/lib/contacts/service";
 import { normalizeEmailAddress } from "@/lib/email/address";
-import { getLatestEmailContent } from "@/lib/email/reply-content-utils";
+import { buildSnippet } from "@/lib/email/parse";
 import { getMailboxAccessLevel, listAccessibleMailboxes } from "@/lib/mailboxes/access";
 
 export async function GET(request: Request) {
@@ -118,12 +118,12 @@ export async function GET(request: Request) {
 			] as const),
 		),
 	);
-	const enrichedRows = rows.map((message) => {
+	const enrichedRows = rows.map(({ rawR2Key: _rawR2Key, ...message }) => {
 		const contactMap = contactMapsByUserId.get(message.userId);
 		const accountName = message.mailboxId ? mailboxNameMap.get(message.mailboxId) : null;
 		return {
 			...message,
-			snippet: getLatestEmailContent(message.snippet),
+			snippet: buildSnippet(message.textBody, message.htmlBody) || message.snippet,
 			fromContactName:
 				(message.direction === "outbound" ? accountName : null) ??
 				contactMap?.get(normalizeEmailAddress(message.fromAddr)) ??

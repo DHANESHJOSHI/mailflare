@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { eq } from "drizzle-orm";
 import { getEnv } from "@/lib/cloudflare";
 import { getDb } from "@/db";
-import { messageBodies, messages } from "@/db/schema";
+import { messages } from "@/db/schema";
 import { requireUser } from "@/lib/auth/cookies";
 import { buildSnippet } from "@/lib/email/parse";
 import type { DraftPayload, DraftRouteParams } from "./types";
@@ -57,16 +57,10 @@ export async function PATCH(request: Request, { params }: DraftRouteParams) {
 			toAddr: input.to ?? "",
 			subject: input.subject ?? null,
 			snippet: buildSnippet(text || null, html || null),
-		})
-		.where(eq(messages.id, id));
-
-	await db
-		.update(messageBodies)
-		.set({
 			textBody: text || null,
 			htmlBody: html || null,
 		})
-		.where(eq(messageBodies.messageId, id));
+		.where(eq(messages.id, id));
 
 	return NextResponse.json({ draft: { id } });
 }

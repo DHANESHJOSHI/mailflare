@@ -23,6 +23,7 @@ import type {
   ImportSourceItem,
   ImportSourceSection,
   ImportTab,
+  ImportProgress,
 } from "./types";
 import {
   ensureImportDestination,
@@ -59,10 +60,12 @@ export default function SettingsImportPage() {
   const [fileResult, setFileResult] = useState<ImportResult | null>(null);
   const [fileError, setFileError] = useState<string | null>(null);
   const [fileLoading, setFileLoading] = useState(false);
+  const [fileProgress, setFileProgress] = useState<ImportProgress | null>(null);
   const [imapForm, setImapForm] = useState<ImapFormState>(initialImapForm);
   const [imapResult, setImapResult] = useState<ImportResult | null>(null);
   const [imapError, setImapError] = useState<string | null>(null);
   const [imapLoading, setImapLoading] = useState(false);
+  const [imapProgress, setImapProgress] = useState<ImportProgress | null>(null);
   const selectedSources = useMemo(
     () => getSelectedImportSources(selectedSections),
     [selectedSections],
@@ -93,12 +96,14 @@ export default function SettingsImportPage() {
     setFileLoading(true);
     setFileError(null);
     setFileResult(null);
+		setFileProgress({ completed: 0, total: 100, label: "Preparing files" });
     try {
       const destination = await getDestination(fileImportSource);
       const result = await importMessageFiles(
         selectedMailbox.id,
         files,
         destination,
+			(percentage) => setFileProgress({ completed: percentage, total: 100, label: percentage < 70 ? "Uploading files" : "Importing messages" }),
       );
       setFileResult(result);
       window.dispatchEvent(new Event("mailflare:messages-changed"));
@@ -117,6 +122,7 @@ export default function SettingsImportPage() {
     setImapLoading(true);
     setImapError(null);
     setImapResult(null);
+		setImapProgress({ completed: 0, total: 1, label: "Discovering IMAP folders" });
     try {
       const total: ImportResult = { imported: 0, skipped: 0, errors: [] };
       const discoveredFolders = await fetchImapFolders(imapForm);
@@ -133,7 +139,8 @@ export default function SettingsImportPage() {
         }
       }
 
-      for (const source of expandedSources) {
+      for (const [index, source] of expandedSources.entries()) {
+			setImapProgress({ completed: index, total: expandedSources.length, label: `Importing ${source.label}` });
         const destination = await getDestination(source);
         const folder = resolveImapSourceFolder(source, discoveredFolders);
         const result = await importFromImap(
@@ -144,6 +151,7 @@ export default function SettingsImportPage() {
         total.imported = (total.imported ?? 0) + (result.imported ?? 0);
         total.skipped = (total.skipped ?? 0) + (result.skipped ?? 0);
         total.errors = [...(total.errors ?? []), ...(result.errors ?? [])];
+			setImapProgress({ completed: index + 1, total: expandedSources.length, label: `Imported ${source.label}` });
       }
       setImapResult(total);
       setImapForm((current) => ({ ...current, password: "" }));
@@ -168,13 +176,14 @@ export default function SettingsImportPage() {
       </div>
 
       <div className="space-y-6 rounded-3xl bg-white p-6">
-        <div className="space-y-2">
+        <div className="flex flex-col gap-2">
           <Label htmlFor="import-source">Import source</Label>
           <Select
             id="import-source"
             value={activeTab}
             onChange={(event) => setActiveTab(event.target.value as ImportTab)}
-            className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 shadow-sm shadow-neutral-200/50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+            className="text-sm w-full py-2"
+            // className="h-10 w-full rounded-md border border-neutral-200 bg-white px-3 text-sm text-neutral-900 shadow-sm shadow-neutral-200/50 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
           >
             <option value="file">Backup File</option>
             <option value="imap">IMAP</option>
@@ -261,6 +270,12 @@ export default function SettingsImportPage() {
                 >
                   {fileLoading ? "Importing..." : "Import selected files"}
                 </Button>
+						{fileProgress && (
+							<div className="space-y-1 text-xs text-neutral-500" aria-live="polite">
+								<div className="flex justify-between"><span>{fileProgress.label}</span><span>{fileProgress.completed}%</span></div>
+								<div className="h-1.5 overflow-hidden rounded-full bg-neutral-100"><div className="h-full bg-blue-600 transition-[width]" style={{ width: `${fileProgress.completed}%` }} /></div>
+							</div>
+						)}
                 {fileResult && (
                   <p className="rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
                     {formatImportResult(fileResult)}
@@ -381,6 +396,12 @@ export default function SettingsImportPage() {
                   <Upload className="h-4 w-4" />
                   {imapLoading ? "Importing..." : "Import selected sources"}
                 </Button>
+						{imapProgress && (
+							<div className="space-y-1 text-xs text-neutral-500" aria-live="polite">
+								<div className="flex justify-between"><span>{imapProgress.label}</span><span>{imapProgress.completed}/{imapProgress.total}</span></div>
+								<div className="h-1.5 overflow-hidden rounded-full bg-neutral-100"><div className="h-full bg-blue-600 transition-[width]" style={{ width: `${Math.round((imapProgress.completed / imapProgress.total) * 100)}%` }} /></div>
+							</div>
+						)}
                 {imapResult && (
                   <p className="rounded-lg border border-green-100 bg-green-50 px-4 py-3 text-sm text-green-700">
                     {formatImportResult(imapResult)}

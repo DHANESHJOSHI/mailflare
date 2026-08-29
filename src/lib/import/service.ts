@@ -1,6 +1,6 @@
 import { and, eq } from "drizzle-orm";
 import { getDb } from "@/db";
-import { messageBodies, messages } from "@/db/schema";
+import { messages } from "@/db/schema";
 import { storeMessageAttachments } from "@/lib/email/attachments";
 import { buildSnippet, parseRawMime } from "@/lib/email/parse";
 import { upsertContactFromAddress } from "@/lib/contacts/service";
@@ -79,6 +79,8 @@ async function importMessageToMailbox(
 		toAddr,
 		subject: parsed.subject,
 		snippet: buildSnippet(parsed.text, parsed.html),
+		textBody: parsed.text,
+		htmlBody: parsed.html,
 		status: placement.status,
 		read: placement.direction === "outbound",
 		threadId: parsed.messageId,
@@ -86,12 +88,6 @@ async function importMessageToMailbox(
 	});
 
 	try {
-		await db.insert(messageBodies).values({
-			id: newId(),
-			messageId,
-			textBody: parsed.text,
-			htmlBody: parsed.html,
-		});
 		await storeMessageAttachments(env, messageId, parsed.attachments, { validate: false });
 		const contactAddress = placement.direction === "outbound" ? toAddr : fromAddr;
 		await upsertContactFromAddress(env, {

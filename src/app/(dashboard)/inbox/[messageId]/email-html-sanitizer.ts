@@ -125,6 +125,7 @@ const ALLOWED_STYLE_PROPERTIES = new Set([
 	"word-break",
 	"word-wrap",
 ]);
+const APP_FONT_FALLBACK = "var(--font-geist-sans), system-ui, sans-serif";
 
 function isSafeLinkUrl(value: string): boolean {
 	try {
@@ -152,7 +153,10 @@ function sanitizeStyle(element: HTMLElement): void {
 		if (!ALLOWED_STYLE_PROPERTIES.has(property)) continue;
 		const value = element.style.getPropertyValue(property);
 		if (/url\s*\(|expression\s*\(|javascript:|@import|behavior\s*:|-moz-binding/i.test(value)) continue;
-		safeDeclarations.push(`${property}: ${value}`);
+		const safeValue = property === "font-family"
+			? `${value}, ${APP_FONT_FALLBACK}`
+			: value;
+		safeDeclarations.push(`${property}: ${safeValue}`);
 	}
 	if (safeDeclarations.length) {
 		element.setAttribute("style", safeDeclarations.join("; "));

@@ -7,7 +7,7 @@ export const inboxFolderConfig: MessageFolderConfig = {
 	emptyText: "No emails",
 	hrefPrefix: "/inbox",
 	icon: Star,
-	headerIcons: [MailOpen, Clock],
+	// headerIcons: [MailOpen, Clock],
 	showRowBadge: false,
 };
 
@@ -35,7 +35,7 @@ export const sentFolderConfig: MessageFolderConfig = {
 	emptyText: "No emails",
 	hrefPrefix: "/sent",
 	icon: Send,
-	headerIcons: [MailOpen, Clock],
+	// headerIcons: [MailOpen, Clock],
 	badgeVariant: "outline",
 };
 

@@ -17,6 +17,8 @@ export type Message = {
 	toContactName?: string | null;
 	subject: string | null;
 	snippet: string | null;
+	textBody?: string | null;
+	htmlBody?: string | null;
 	status: MessageStatus | string;
 	read: boolean;
 	starred: boolean;

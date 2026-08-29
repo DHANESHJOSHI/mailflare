@@ -59,7 +59,10 @@ export function getMessageQueryParams(
 
 	if (folderId) params.set("folderId", folderId);
 	if (mailboxId) params.set("mailboxId", mailboxId);
-	const parsedFilters = filters?.query ? { ...filters, ...parseMessageSearchQuery(filters.query) } : filters;
+	const searchFilters = filters?.query ? parseMessageSearchQuery(filters.query) : null;
+	const parsedFilters = searchFilters
+		? { ...filters, ...searchFilters, read: filters?.read ?? searchFilters.read }
+		: filters;
 	if (parsedFilters?.query?.trim()) params.set("q", parsedFilters.query.trim());
 	if (parsedFilters?.title?.trim()) params.set("title", parsedFilters.title.trim());
 	if (parsedFilters?.read && parsedFilters.read !== "all") params.set("read", parsedFilters.read);

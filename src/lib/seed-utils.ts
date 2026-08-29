@@ -3,7 +3,6 @@ import { getDb } from "@/db";
 import {
 	domains,
 	mailboxes,
-	messageBodies,
 	messages,
 	outboundJobs,
 	users,
@@ -334,17 +333,12 @@ export async function insertDemoMessages(
 			toAddr: seedMessage.toAddr,
 			subject: seedMessage.subject,
 			snippet: buildSnippet(seedMessage.textBody, null),
+			textBody: seedMessage.textBody,
+			htmlBody: null,
 			status: seedMessage.status,
 			read: seedMessage.read ?? true,
 			threadId: seedMessage.providerMessageId ?? null,
 			createdAt,
-		});
-
-		await db.insert(messageBodies).values({
-			id: newId(),
-			messageId: id,
-			textBody: seedMessage.textBody,
-			htmlBody: null,
 		});
 
 		if (seedMessage.status === "queued" || seedMessage.status === "failed") {

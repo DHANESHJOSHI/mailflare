@@ -169,6 +169,9 @@ export const messages = sqliteTable(
 		toAddr: text("to_addr").notNull(),
 		subject: text("subject"),
 		snippet: text("snippet"),
+		textBody: text("text_body"),
+		htmlBody: text("html_body"),
+		rawR2Key: text("raw_r2_key"),
 		status: text("status").notNull().default("received"),
 		read: integer("read", { mode: "boolean" }).notNull().default(false),
 		starred: integer("starred", { mode: "boolean" }).notNull().default(false),
@@ -184,17 +187,6 @@ export const messages = sqliteTable(
 		index("messages_folder_idx").on(t.folderId),
 	],
 );
-
-export const messageBodies = sqliteTable("message_bodies", {
-	id: text("id").primaryKey(),
-	messageId: text("message_id")
-		.notNull()
-		.references(() => messages.id, { onDelete: "cascade" })
-		.unique(),
-	textBody: text("text_body"),
-	htmlBody: text("html_body"),
-	rawR2Key: text("raw_r2_key"),
-});
 
 export const messageAttachments = sqliteTable(
 	"message_attachments",
@@ -227,6 +219,7 @@ export const outboundJobs = sqliteTable("outbound_jobs", {
 	status: text("status", { enum: ["queued", "sent", "failed"] }).notNull().default("queued"),
 	payload: text("payload").notNull(),
 	error: text("error"),
+	scheduledAt: integer("scheduled_at", { mode: "timestamp" }),
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
 		.$defaultFn(() => new Date()),
@@ -234,6 +227,38 @@ export const outboundJobs = sqliteTable("outbound_jobs", {
 		.notNull()
 		.$defaultFn(() => new Date()),
 });
+
+export const emailTemplates = sqliteTable(
+	"email_templates",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+		name: text("name").notNull(),
+		subject: text("subject").notNull().default(""),
+		textBody: text("text_body").notNull().default(""),
+		createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+		updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+	},
+	(t) => [index("email_templates_user_idx").on(t.userId)],
+);
+
+export const calendarEvents = sqliteTable(
+	"calendar_events",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+		mailboxId: text("mailbox_id").references(() => mailboxes.id, { onDelete: "set null" }),
+		title: text("title").notNull(),
+		description: text("description").notNull().default(""),
+		location: text("location").notNull().default(""),
+		attendees: text("attendees").notNull().default("[]"),
+		startsAt: integer("starts_at", { mode: "timestamp" }).notNull(),
+		endsAt: integer("ends_at", { mode: "timestamp" }).notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+		updatedAt: integer("updated_at", { mode: "timestamp" }).notNull().$defaultFn(() => new Date()),
+	},
+	(t) => [index("calendar_events_user_starts_idx").on(t.userId, t.startsAt)],
+);
 
 export const routingRules = sqliteTable("routing_rules", {
 	id: text("id").primaryKey(),
@@ -392,9 +417,10 @@ export const schema = {
 	folders,
 	apiKeys,
 	messages,
-	messageBodies,
 	messageAttachments,
 	outboundJobs,
+	emailTemplates,
+	calendarEvents,
 	routingRules,
 	webhooks,
 	webhookDeliveries,

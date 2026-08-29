@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { and, desc, eq } from "drizzle-orm";
 import { getEnv } from "@/lib/cloudflare";
 import { getDb } from "@/db";
-import { messageBodies, messages } from "@/db/schema";
+import { messages } from "@/db/schema";
 import { requireUser } from "@/lib/auth/cookies";
 import { newId } from "@/lib/ids";
 import { buildSnippet } from "@/lib/email/parse";
@@ -62,15 +62,10 @@ export async function POST(request: Request) {
 		toAddr: input.to ?? "",
 		subject: input.subject ?? null,
 		snippet: buildSnippet(text || null, html || null),
-		status: "draft",
-		read: true,
-	});
-
-	await db.insert(messageBodies).values({
-		id: newId(),
-		messageId: draftId,
 		textBody: text || null,
 		htmlBody: html || null,
+		status: "draft",
+		read: true,
 	});
 
 	return NextResponse.json({ draft: { id: draftId } });

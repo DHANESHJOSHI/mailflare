@@ -70,5 +70,5 @@ export async function runBulkMessageAction(messageIds: string[], action: string,
 	});
 
 	if (!response.ok) throw new Error("Unable to update selected messages");
-	window.dispatchEvent(new Event(notify ? "mailflare:messages-changed" : "mailflare:message-counts-changed"));
+	if (notify) window.dispatchEvent(new Event("mailflare:messages-changed"));
 }
