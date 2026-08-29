@@ -253,7 +253,6 @@ export function MailboxSelector() {
 										onSelect={() => {
 											setSelectedMailbox(mailbox);
 											setOpen(false);
-											router.push("/inbox");
 										}}
 									/>
 								);

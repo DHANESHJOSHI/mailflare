@@ -61,9 +61,15 @@ export async function PATCH(request: Request, { params }: MailboxRouteParams) {
 			.set(updateValues)
 			.where(eq(mailboxes.id, id));
 	}
-	if (updateValues.useAllDomains) {
+	if (updateValues.useAllDomains && !existing.useAllDomains) {
 		const [routingMailbox] = await db.select().from(mailboxes).where(eq(mailboxes.id, id)).limit(1);
-		if (routingMailbox) await ensureMailboxDomainRouting(env, db, routingMailbox);
+		if (routingMailbox) {
+			try {
+				await ensureMailboxDomainRouting(env, db, routingMailbox);
+			} catch (error) {
+				console.warn("ensureMailboxDomainRouting", error);
+			}
+		}
 	}
 
 	const [mailbox] = await selectMailboxForUser(db, user.id, id);
