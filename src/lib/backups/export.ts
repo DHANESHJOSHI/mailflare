@@ -1,47 +1,63 @@
-import type { D1ExportResponse } from "./types";
-import { getExportError } from "./utils";
+import type { DatabaseBackupDocument, DatabaseBackupTable, DatabaseRecord } from "./types";
 
-export function getD1ExportConfigurationStatus(env: CloudflareEnv) {
-	const accountId = env.CF_AID?.trim();
-	const databaseId = env.D1_DATABASE_ID?.trim();
-	const token = env.D1_BACKUP_TOKEN?.trim() || env.CF_TOKEN?.trim();
-	const missing = [
-		!accountId ? "CF_AID" : null,
-		!databaseId ? "D1_DATABASE_ID" : null,
-		!token ? "D1_BACKUP_TOKEN or CF_TOKEN" : null,
-	].filter((value): value is string => Boolean(value));
+const BACKUP_TABLES: DatabaseBackupTable[] = ["users", "domains", "mailboxes", "mailbox_access", "contacts", "folders", "api_keys", "messages", "message_bodies", "message_attachments", "outbound_jobs", "routing_rules", "webhooks", "webhook_deliveries", "sessions", "audit_logs", "backup_settings", "backups", "app_settings", "license_settings"];
+const INSERT_BATCH_SIZE = 50;
 
-	return { configured: missing.length === 0, missing };
+export function getD1ExportConfigurationStatus(_env?: CloudflareEnv) {
+	return { configured: true, missing: [] };
 }
 
-export function getD1ExportConfiguration(env: CloudflareEnv) {
-	const status = getD1ExportConfigurationStatus(env);
-
-	if (!status.configured) {
-		throw new Error(
-			`Database backups require ${status.missing.join(", ")}. Configure ${status.missing.length === 1 ? "it" : "them"} in the Worker's Variables and Secrets settings.`,
-		);
+export async function exportDatabaseRecords(db: D1Database): Promise<Uint8Array> {
+	const tables = {} as Record<DatabaseBackupTable, DatabaseRecord[]>;
+	for (const table of BACKUP_TABLES) {
+		const result = await db.prepare(`SELECT * FROM ${table}`).all<DatabaseRecord>();
+		tables[table] = result.results;
 	}
-
-	return {
-		token: (env.D1_BACKUP_TOKEN?.trim() || env.CF_TOKEN?.trim())!,
-		url: `https://api.cloudflare.com/client/v4/accounts/${env.CF_AID!.trim()}/d1/database/${env.D1_DATABASE_ID!.trim()}/export`,
-	};
+	const document: DatabaseBackupDocument = { format: "mailflare-database-backup", version: 1, createdAt: new Date().toISOString(), tables };
+	return new TextEncoder().encode(JSON.stringify(document));
 }
 
-export async function requestD1Export(
-	configuration: ReturnType<typeof getD1ExportConfiguration>,
-	payload: object,
-): Promise<D1ExportResponse> {
-	const response = await fetch(configuration.url, {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${configuration.token}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify(payload),
-	});
-	const result = (await response.json()) as D1ExportResponse;
-	if (!response.ok || !result.success) throw new Error(getExportError(result));
-	return result;
+export async function restoreDatabaseRecords(db: D1Database, content: ArrayBuffer): Promise<void> {
+	const document = parseDatabaseBackup(content);
+	validateDatabaseBackup(document);
+	for (const table of [...BACKUP_TABLES].reverse()) await db.prepare(`DELETE FROM ${table}`).run();
+	for (const table of BACKUP_TABLES) {
+		const rows = document.tables[table];
+		for (let index = 0; index < rows.length; index += INSERT_BATCH_SIZE) {
+			const statements = rows.slice(index, index + INSERT_BATCH_SIZE).map((row) => createInsertStatement(db, table, row));
+			if (statements.length > 0) await db.batch(statements);
+		}
+	}
+}
+
+function parseDatabaseBackup(content: ArrayBuffer): DatabaseBackupDocument {
+	let value: unknown;
+	try { value = JSON.parse(new TextDecoder().decode(content)); } catch { throw new Error("The selected file is not a valid Mailflare backup"); }
+	if (!isDatabaseBackupDocument(value)) throw new Error("The selected file is not a valid Mailflare backup");
+	return value;
+}
+
+function isDatabaseBackupDocument(value: unknown): value is DatabaseBackupDocument {
+	if (!value || typeof value !== "object") return false;
+	const document = value as Partial<DatabaseBackupDocument>;
+	return document.format === "mailflare-database-backup" && document.version === 1 && !!document.tables && BACKUP_TABLES.every((table) => Array.isArray(document.tables?.[table]));
+}
+
+function createInsertStatement(db: D1Database, table: DatabaseBackupTable, row: DatabaseRecord) {
+	const columns = Object.keys(row);
+	if (columns.length === 0) throw new Error(`Backup contains an invalid ${table} record`);
+	const placeholders = columns.map(() => "?").join(", ");
+	return db.prepare(`INSERT INTO ${table} (${columns.join(", ")}) VALUES (${placeholders})`).bind(...columns.map((column) => row[column]));
+}
+
+function validateDatabaseBackup(document: DatabaseBackupDocument): void {
+	for (const table of BACKUP_TABLES) {
+		for (const row of document.tables[table]) {
+			for (const [column, value] of Object.entries(row)) {
+				if (!/^[a-z_]+$/.test(column) || (value !== null && typeof value !== "string" && typeof value !== "number")) {
+					throw new Error(`Backup contains an invalid ${table} record`);
+				}
+			}
+		}
+	}
 }

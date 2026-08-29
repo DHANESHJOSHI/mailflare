@@ -4,10 +4,7 @@ import { getDb } from "@/db";
 import { backups } from "@/db/schema";
 import { assertAdmin } from "@/lib/auth/admin";
 import { requireUser } from "@/lib/auth/cookies";
-import {
-	getD1ExportConfiguration,
-	getD1ExportConfigurationStatus,
-} from "@/lib/backups/export";
+import { getD1ExportConfigurationStatus } from "@/lib/backups/export";
 import {
 	createBackupRecord,
 	getBackupSettings,
@@ -61,7 +58,6 @@ export async function POST(request: Request) {
 	try {
 		const { env, user } = await requireAdmin(request);
 		const workflow = getBackupWorkflowBinding(env);
-		getD1ExportConfiguration(env);
 		const backupId = await createBackupRecord(env, "manual", user.id);
 		try {
 			await workflow.create({
