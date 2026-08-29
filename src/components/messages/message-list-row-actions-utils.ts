@@ -1,4 +1,5 @@
 import { authFetch } from "@/lib/auth/client";
+import type { MessageCountsDelta } from "@/hooks/types";
 
 export type SnoozePreset = {
 	label: string;
@@ -51,4 +52,8 @@ export async function toggleMessageStar(messageId: string) {
 	const result = (await response.json()) as { starred: boolean };
 	window.dispatchEvent(new Event("mailflare:message-counts-changed"));
 	return result;
+}
+
+export function dispatchMessageCountsDelta(detail: MessageCountsDelta) {
+	window.dispatchEvent(new CustomEvent<MessageCountsDelta>("mailflare:message-counts-delta", { detail }));
 }

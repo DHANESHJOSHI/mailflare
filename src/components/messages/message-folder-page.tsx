@@ -17,7 +17,7 @@ import type { BulkMessageAction } from "@/app/api/messages/bulk/types";
 import { setMessageDragData } from "@/lib/messages/drag-utils";
 import { BulkMessageToolbar } from "./bulk-message-toolbar";
 import { MessageListRowActions } from "./message-list-row-actions";
-import { toggleMessageStar } from "./message-list-row-actions-utils";
+import { dispatchMessageCountsDelta, toggleMessageStar } from "./message-list-row-actions-utils";
 import { MessageNavigationProgress, useMessageNavigation } from "./message-navigation";
 import type { MessageFolderPageProps, MessageListRowProps } from "./types";
 import {
@@ -189,12 +189,17 @@ function MessageListRow({
 					message={rowMessage}
 					onAction={async (action) => {
 						const previousRead = read;
+						const unreadDelta = action === "read" ? -1 : action === "unread" ? 1 : 0;
 						if (action === "read") setRead(true);
 						if (action === "unread") setRead(false);
+						if (unreadDelta) dispatchMessageCountsDelta({ inboxUnreadDelta: unreadDelta });
 						try {
 							await onMessageAction(message.id, action);
 						} catch (error) {
-							if (action === "read" || action === "unread") setRead(previousRead);
+							if (action === "read" || action === "unread") {
+								setRead(previousRead);
+								if (unreadDelta) dispatchMessageCountsDelta({ inboxUnreadDelta: -unreadDelta });
+							}
 							throw error;
 						}
 					}}

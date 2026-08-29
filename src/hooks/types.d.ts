@@ -59,3 +59,7 @@ export type MessageCounts = {
 	customFolders: Record<string, FolderCount>;
 	mailboxes: MailboxCount[];
 };
+
+export type MessageCountsDelta = {
+	inboxUnreadDelta?: number;
+};

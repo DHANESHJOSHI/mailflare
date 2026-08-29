@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import type { MessageCounts } from "./types";
+import type { MessageCounts, MessageCountsDelta } from "./types";
 import { clearMessageCountsCache, fetchMessageCounts } from "./utils";
 
 const emptyCounts: MessageCounts = {
@@ -44,14 +44,30 @@ export function useMessageCounts(mailboxId?: string | null, enabled = true) {
 			clearMessageCountsCache();
 			void loadCounts(true);
 		}
+		function onMessageCountsDelta(event: Event) {
+			const detail = (event as CustomEvent<MessageCountsDelta>).detail;
+			if (!detail?.inboxUnreadDelta) return;
+			setCounts((current) => ({
+				...current,
+				folders: {
+					...current.folders,
+					inbox: {
+						...current.folders.inbox,
+						unread: Math.max(0, current.folders.inbox.unread + detail.inboxUnreadDelta),
+					},
+				},
+			}));
+		}
 		window.addEventListener("mailflare:messages-changed", onMessagesChanged);
 		window.addEventListener("mailflare:message-counts-changed", onMessagesChanged);
+		window.addEventListener("mailflare:message-counts-delta", onMessageCountsDelta);
 		const refreshInterval = window.setInterval(() => void loadCounts(true), 15_000);
 
 		return () => {
 			cancelled = true;
 			window.removeEventListener("mailflare:messages-changed", onMessagesChanged);
 			window.removeEventListener("mailflare:message-counts-changed", onMessagesChanged);
+			window.removeEventListener("mailflare:message-counts-delta", onMessageCountsDelta);
 			window.clearInterval(refreshInterval);
 		};
 	}, [enabled, mailboxId]);
