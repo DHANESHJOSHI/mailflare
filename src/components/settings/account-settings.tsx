@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChangePasswordForm } from "./change-password-form";
 import { ProfileForm } from "./profile-form";
+import { ProfileAvatarForm } from "./profile-avatar-form";
 import type { AccountSettingsResponse } from "./types";
 import { loadAccountSettings } from "./utils";
 
@@ -54,6 +55,13 @@ export function AccountSettings() {
 					<CardDescription>Your current email is assigned to this account and cannot be changed here.</CardDescription>
 				</CardHeader>
 				<CardContent className="pb-6">
+					<div className="mb-6 flex items-center gap-4 border-b border-neutral-100 pb-6">
+						<ProfileAvatarForm name={user.name} />
+						<div>
+							<p className="text-sm font-medium text-neutral-900">Profile picture</p>
+							<p className="mt-1 text-sm text-neutral-500">Choose a picture to show across your account.</p>
+						</div>
+					</div>
 					<ProfileForm
 						initialName={user.name}
 						initialResetEmail={user.resetEmail ?? ""}

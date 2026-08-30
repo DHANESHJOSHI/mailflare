@@ -55,21 +55,27 @@ export async function PATCH(request: Request, { params }: MailboxRouteParams) {
 	}
 
 	const updateValues = getMailboxUpdateValues(parsed.data);
+	if (parsed.data.useAllDomains === true) {
+		try {
+			await ensureMailboxDomainRouting(env, db, {
+				id: existing.id,
+				domainId: existing.domainId,
+				localPart: existing.localPart,
+				useAllDomains: true,
+			});
+		} catch (error) {
+			console.error("ensureMailboxDomainRouting", error);
+			return NextResponse.json(
+				{ error: "Failed to configure inbound routing for all domains. Please try saving again." },
+				{ status: 502 },
+			);
+		}
+	}
 	if (Object.keys(updateValues).length > 0) {
 		await db
 			.update(mailboxes)
 			.set(updateValues)
 			.where(eq(mailboxes.id, id));
-	}
-	if (updateValues.useAllDomains && !existing.useAllDomains) {
-		const [routingMailbox] = await db.select().from(mailboxes).where(eq(mailboxes.id, id)).limit(1);
-		if (routingMailbox) {
-			try {
-				await ensureMailboxDomainRouting(env, db, routingMailbox);
-			} catch (error) {
-				console.warn("ensureMailboxDomainRouting", error);
-			}
-		}
 	}
 
 	const [mailbox] = await selectMailboxForUser(db, user.id, id);
