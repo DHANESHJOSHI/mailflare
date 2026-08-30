@@ -19,6 +19,7 @@ const MIGRATION_NAMES = [
 	"0018_add_mailbox_domain_aliases.sql",
 	"0019_merge_message_bodies.sql",
 	"0020_add_calendar_templates_schedule.sql",
+	"0021_add_advanced_routing_and_webhook_retries.sql",
 ];
 
 const INITIAL_SCHEMA_SQL = `
@@ -52,9 +53,14 @@ CREATE TABLE IF NOT EXISTS email_templates (id text PRIMARY KEY NOT NULL, user_i
 CREATE INDEX IF NOT EXISTS email_templates_user_idx ON email_templates(user_id);
 CREATE TABLE IF NOT EXISTS calendar_events (id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE cascade, mailbox_id text REFERENCES mailboxes(id) ON DELETE set null, title text NOT NULL, description text DEFAULT '' NOT NULL, location text DEFAULT '' NOT NULL, attendees text DEFAULT '[]' NOT NULL, starts_at integer NOT NULL, ends_at integer NOT NULL, created_at integer NOT NULL, updated_at integer NOT NULL);
 CREATE INDEX IF NOT EXISTS calendar_events_user_starts_idx ON calendar_events(user_id, starts_at);
-CREATE TABLE IF NOT EXISTS routing_rules (id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE cascade, domain_id text NOT NULL REFERENCES domains(id) ON DELETE cascade, pattern text NOT NULL, match_field text DEFAULT 'email' NOT NULL, match_operator text DEFAULT 'contains' NOT NULL, match_value text DEFAULT '' NOT NULL, mailbox_id text REFERENCES mailboxes(id) ON DELETE set null, folder_id text REFERENCES folders(id) ON DELETE set null, action text DEFAULT 'store' NOT NULL, forward_to text, priority integer DEFAULT 0 NOT NULL, created_at integer NOT NULL);
-CREATE TABLE IF NOT EXISTS webhooks (id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE cascade, url text NOT NULL, secret text NOT NULL, events text NOT NULL, enabled integer DEFAULT true NOT NULL, created_at integer NOT NULL);
-CREATE TABLE IF NOT EXISTS webhook_deliveries (id text PRIMARY KEY NOT NULL, webhook_id text NOT NULL REFERENCES webhooks(id) ON DELETE cascade, event_type text NOT NULL, payload text NOT NULL, status text DEFAULT 'pending' NOT NULL, attempts integer DEFAULT 0 NOT NULL, created_at integer NOT NULL);
+CREATE TABLE IF NOT EXISTS routing_rules (id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE cascade, domain_id text NOT NULL REFERENCES domains(id) ON DELETE cascade, scope text DEFAULT 'mailbox' NOT NULL, name text, enabled integer DEFAULT true NOT NULL, pattern text NOT NULL, match_field text DEFAULT 'email' NOT NULL, match_operator text DEFAULT 'contains' NOT NULL, match_value text DEFAULT '' NOT NULL, mailbox_id text REFERENCES mailboxes(id) ON DELETE set null, folder_id text REFERENCES folders(id) ON DELETE set null, action text DEFAULT 'store' NOT NULL, forward_to text, keep_copy integer DEFAULT false NOT NULL, reject_reason text, priority integer DEFAULT 0 NOT NULL, last_matched_at integer, match_count integer DEFAULT 0 NOT NULL, created_at integer NOT NULL);
+CREATE INDEX IF NOT EXISTS routing_rules_domain_scope_idx ON routing_rules(domain_id, scope, enabled);
+CREATE INDEX IF NOT EXISTS routing_rules_mailbox_idx ON routing_rules(mailbox_id);
+CREATE INDEX IF NOT EXISTS routing_rules_priority_idx ON routing_rules(priority);
+CREATE TABLE IF NOT EXISTS webhooks (id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE cascade, description text, url text NOT NULL, secret text NOT NULL, events text NOT NULL, enabled integer DEFAULT true NOT NULL, max_attempts integer DEFAULT 5 NOT NULL, created_at integer NOT NULL);
+CREATE TABLE IF NOT EXISTS webhook_deliveries (id text PRIMARY KEY NOT NULL, webhook_id text NOT NULL REFERENCES webhooks(id) ON DELETE cascade, event_type text NOT NULL, payload text NOT NULL, status text DEFAULT 'pending' NOT NULL, attempts integer DEFAULT 0 NOT NULL, response_status integer, error text, duration_ms integer, last_attempt_at integer, next_retry_at integer, created_at integer NOT NULL);
+CREATE INDEX IF NOT EXISTS webhook_deliveries_webhook_idx ON webhook_deliveries(webhook_id, created_at);
+CREATE INDEX IF NOT EXISTS webhook_deliveries_status_idx ON webhook_deliveries(status);
 CREATE TABLE IF NOT EXISTS sessions (id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE cascade, token_hash text NOT NULL UNIQUE, expires_at integer NOT NULL, created_at integer NOT NULL);
 CREATE TABLE IF NOT EXISTS audit_logs (id text PRIMARY KEY NOT NULL, actor_user_id text REFERENCES users(id) ON DELETE set null, target_user_id text REFERENCES users(id) ON DELETE set null, mailbox_id text REFERENCES mailboxes(id) ON DELETE set null, message_id text REFERENCES messages(id) ON DELETE set null, action text NOT NULL, metadata text, created_at integer NOT NULL);
 CREATE INDEX IF NOT EXISTS audit_logs_actor_idx ON audit_logs(actor_user_id);
