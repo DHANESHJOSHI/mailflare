@@ -21,8 +21,8 @@ A self-hosted, AI-powered email inbox with custom domains, powered by Cloudflare
 - [x] Real-time new-email updates and in-app notifications over WebSockets.
 - [x] Search, filtering, and richer mailbox/folder counts.
 - [x] Attachment support and richer compose formatting.
-- [ ] Advanced routing rules for catch-all addresses, forwarding, reject/block rules, and priorities.
-- [ ] Webhook management UI and delivery retry visibility.
+- [x] Advanced routing rules for catch-all addresses, forwarding, reject/block rules, and priorities.
+- [x] Webhook management UI and delivery retry visibility.
 
 #### Email agent
 
@@ -93,6 +93,56 @@ combined limit. Attachment metadata is stored in D1 and file content is stored i
 
 Received MIME attachments are extracted automatically. Downloads require access to the mailbox
 containing the message.
+
+## Routing rules
+
+Two kinds of rule exist, distinguished by the `scope` column on `routing_rules`.
+
+**Domain rules** (`scope = "domain"`, managed at **Admin → Routing**) run while the inbound
+address is being resolved, in three phases so a broad catch-all can never shadow a real mailbox:
+
+1. `reject` rules — evaluated before any mailbox lookup, so a sender can be blocked even when the
+   recipient is a real mailbox. The Worker calls `message.setReject()`.
+2. Exact mailbox, then multi-domain mailbox aliases.
+3. Remaining `forward` and `store` rules — the catch-all fallback, used only when no mailbox
+   matched.
+
+Within each phase, rules run by descending `priority`, then oldest first. Rules can match on the
+recipient, the sender, the subject, or the body, using `contains`, `exact`, `starts_with`,
+`ends_with`, or `regex`; `*` matches every message. A `forward` rule drops the message unless
+"keep a copy" is set, which also stores it in the selected mailbox. Forwarding destinations must be
+verified destination addresses in Cloudflare Email Routing.
+
+Because `forward` and `reject` can only be actioned on a live `ForwardableEmailMessage`, they are
+resolved in the Worker `email` handler rather than in the inbound queue consumer.
+
+**Mailbox rules** (`scope = "mailbox"`, managed at **Settings → Rules**) run after delivery and
+file the message into a folder or move it to spam/trash.
+
+- `GET/POST /api/routing-rules/domain` — list / create domain rules (admin)
+- `PATCH/DELETE /api/routing-rules/domain/[id]` — update / delete a domain rule (admin)
+
+## Webhooks
+
+Manage endpoints at **Admin → Webhooks**: add and remove endpoints, enable or disable them, choose
+events, send a test delivery, and inspect delivery history.
+
+Every attempt records its HTTP status, response or error snippet, duration, attempt count, and next
+retry time. Failed deliveries retry automatically with exponential backoff (1m, 2m, 4m, 8m, capped
+at one hour) up to the endpoint's `maxAttempts`, after which the delivery is marked `exhausted`.
+Retries ride the existing `OUTBOUND_QUEUE` with a `delaySeconds`, so no extra binding is needed;
+`isWebhookRetryMessage` in `worker-utils.ts` discriminates them from outbound mail. Any delivery can
+also be retried by hand from the deliveries table.
+
+Payloads are signed with HMAC-SHA256 over the raw body and sent as `X-Email-Platform-Signature`,
+alongside `X-Email-Platform-Event`, `-Delivery`, and `-Attempt` headers. The signing secret is shown
+once, when the endpoint is created.
+
+- `GET/POST /api/webhooks` — list (with delivery stats) / create
+- `GET/PATCH/DELETE /api/webhooks/[id]` — read / update / delete
+- `POST /api/webhooks/[id]/test` — send a test delivery
+- `GET /api/webhooks/[id]/deliveries` — delivery history
+- `POST /api/webhooks/[id]/deliveries/[deliveryId]/retry` — retry one delivery
 
 ### Real-time email notifications
 
