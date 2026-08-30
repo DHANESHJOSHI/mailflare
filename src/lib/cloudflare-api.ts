@@ -9,7 +9,7 @@ import {
 import { getZoneLookupCandidates } from "@/lib/domains/utils";
 export type { CfDnsRecord } from "@/lib/cloudflare-api.types";
 
-async function cfRequest<T>(
+export async function cfRequest<T>(
 	env: CloudflareEnv,
 	path: string,
 	init?: RequestInit,
@@ -199,10 +199,26 @@ export async function ensureEmailRoutingRuleToWorker(
 		const sendsToWorker = rule.actions?.some(
 			(action) => action.type === "worker" && (action.value?.length ? action.value.includes(workerName) : true),
 		);
-		return rule.enabled && routesAddress && sendsToWorker;
+		return routesAddress && sendsToWorker;
 	});
 
-	if (existing) return existing;
+	if (existing?.enabled) return existing;
+	if (existing?.id) {
+		return cfRequest<CfEmailRoutingRule>(
+			env,
+			`/zones/${zoneId}/email/routing/rules/${existing.id}`,
+			{
+				method: "PUT",
+				body: JSON.stringify({
+					actions: [{ type: "worker", value: [workerName] }],
+					enabled: true,
+					matchers: [{ type: "literal", field: "to", value: normalized }],
+					name: existing.name ?? `Route ${normalized} to ${workerName}`,
+					priority: existing.priority,
+				}),
+			},
+		);
+	}
 
 	return createEmailRoutingRuleToWorker(env, zoneId, normalized);
 }

@@ -4,6 +4,7 @@ import {
 	findZoneByHostname,
 	listSendingSubdomains,
 } from "@/lib/cloudflare-api";
+import { ensureEmailRoutingCatchAllToWorker } from "@/lib/domains/catch-all-routing";
 import { isZoneApex } from "@/lib/domains/utils";
 import type { DomainProvisioningResult } from "@/lib/domains/types";
 
@@ -33,6 +34,7 @@ export async function provisionDomainOnCloudflare(
 		const routing = await enableEmailRouting(env, zone.id, routingName);
 		routingEnabled = routing.enabled ?? true;
 		routingStatus = routing.status;
+		await ensureEmailRoutingCatchAllToWorker(env, zone.id);
 	}
 
 	if (enableSending) {

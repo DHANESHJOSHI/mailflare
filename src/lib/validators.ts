@@ -123,6 +123,10 @@ export const accountMailboxSchema = z.object({
 
 export const updateMailboxSchema = z.object({
 	displayName: z.string().max(100).nullable().optional(),
+	signature: z.string().max(10_000).nullable().optional(),
+	autoReplyEnabled: z.boolean().optional(),
+	autoReplySubject: z.string().trim().max(200).optional(),
+	autoReplyBody: z.string().max(10_000).optional(),
 	useAllDomains: z.boolean().optional(),
 });
 
@@ -141,6 +145,13 @@ export const updateProfileSchema = z.object({
 	forwardingEmail: z.preprocess(
 		(value) => (typeof value === "string" ? value.trim() : value),
 		z.string().email().or(z.literal("")).optional().transform((value) => value === undefined ? undefined : value || null),
+	),
+});
+
+export const updateForwardingEmailSchema = z.object({
+	forwardingEmail: z.preprocess(
+		(value) => (typeof value === "string" ? value.trim() : value),
+		z.string().email().or(z.literal("")).transform((value) => value || null),
 	),
 });
 

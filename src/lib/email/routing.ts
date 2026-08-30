@@ -44,7 +44,11 @@ export async function resolveInboundAddress(
 	const [exactMailbox] = await db
 		.select()
 		.from(mailboxes)
-		.where(and(eq(mailboxes.domainId, domain.id), eq(mailboxes.localPart, parsed.local)))
+		.where(and(
+			eq(mailboxes.domainId, domain.id),
+			eq(mailboxes.localPart, parsed.local),
+			eq(mailboxes.disabled, false),
+		))
 		.limit(1);
 	const mailbox = exactMailbox ?? await resolveMailboxDomainAlias(db, domain.hostname, parsed.local);
 

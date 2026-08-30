@@ -1,25 +1,38 @@
-import type { SettingsNavItem } from "./settings-nav-types";
+import type { SettingsNavSection } from "./settings-nav-types";
 
-export const settingsNavItems: SettingsNavItem[] = [
+export const settingsNavSections: SettingsNavSection[] = [
 	{
-		href: "/settings",
-		label: "Account",
+		label: "Settings",
+		items: [
+			{
+				href: "/settings/account",
+				label: "Account",
+			},
+			{
+				href: "/settings/rules",
+				label: "Rules",
+			},
+		],
 	},
 	{
-		href: "/settings/rules",
-		label: "Rules",
-	},
-	{
-		href: "/settings/import",
-		label: "Import",
-	},
-	{
-		href: "/settings/export",
-		label: "Export",
+		label: "Mailbox",
+		items: [
+			{
+				href: "/settings/auto-reply",
+				label: "Auto-Reply",
+			},
+			{
+				href: "/settings/import",
+				label: "Import",
+			},
+			{
+				href: "/settings/export",
+				label: "Export",
+			},
+		],
 	},
 ];
 
 export function isActiveSettingsPath(pathname: string, href: string): boolean {
-	if (href === "/settings") return pathname === href;
 	return pathname === href || pathname.startsWith(`${href}/`);
 }

@@ -6,6 +6,8 @@ import {
 	type InboundQueueMessage,
 } from "./src/lib/email/inbound";
 import { processOutboundQueue, type OutboundQueueMessage } from "./src/lib/email/send";
+import { getDb } from "./src/db";
+import { resolveInboundAddress } from "./src/lib/email/routing";
 import { isInboundQueueMessage } from "./worker-utils";
 import { getUserFromSession } from "./src/lib/auth/session";
 import { getSessionTokenFromRequest } from "./src/lib/realtime/utils";
@@ -38,6 +40,11 @@ export default {
 
 	async email(message: ForwardableEmailMessage, env: CloudflareEnv, ctx: ExecutionContext) {
 		try {
+			const decision = await resolveInboundAddress(getDb(env), message.to);
+			if (!decision?.mailbox || decision.action !== "store") {
+				message.setReject("Unknown recipient");
+				return;
+			}
 			if (message.headers.get(MAILFLARE_FORWARDED_HEADER) !== "1") {
 				const forwardingDestination = await getAccountForwardingDestination(env, message.to);
 				if (forwardingDestination) {

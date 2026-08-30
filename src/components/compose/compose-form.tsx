@@ -11,7 +11,7 @@ import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { authFetch } from "@/lib/auth/client";
 import { formatEmailAddress, getEmailAddress } from "@/lib/email/address";
 import { cn } from "@/lib/utils";
-import { buildSendFormData, fetchDraft, formatAttachmentSize } from "./utils";
+import { applyMailboxSignature, buildSendFormData, fetchDraft, formatAttachmentSize } from "./utils";
 import type { ComposeAttachment } from "./types";
 
 type Toast = { type: "success" | "error"; message: string } | null;
@@ -39,6 +39,7 @@ export function ComposeForm({
 	const [selectedFrom, setSelectedFrom] = useState("");
 	const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const attachmentInput = useRef<HTMLInputElement | null>(null);
+	const previousSignature = useRef("");
 
 	useEffect(() => {
 		if (!selectedMailbox && mailboxes.length === 1) setSelectedMailbox(mailboxes[0]);
@@ -121,7 +122,16 @@ export function ComposeForm({
 	}, [loadedDraftFrom, senderAddresses]);
 
 	useEffect(() => {
-		const hasContent = to.trim() || subject.trim() || text.trim();
+		if (loadingDraft) return;
+		const nextSignature = selectedMailbox?.signature ?? "";
+		setText((current) => applyMailboxSignature(current, previousSignature.current, nextSignature));
+		previousSignature.current = nextSignature;
+	}, [loadingDraft, selectedMailbox?.id, selectedMailbox?.signature]);
+
+	useEffect(() => {
+		const bodyContent = text.trim();
+		const signatureOnly = bodyContent === (selectedMailbox?.signature?.trim() ?? "");
+		const hasContent = to.trim() || subject.trim() || (bodyContent && !signatureOnly);
 		if (!fromAddr || !hasContent || loadingDraft) return;
 		if (saveTimer.current) clearTimeout(saveTimer.current);
 
@@ -145,7 +155,7 @@ export function ComposeForm({
 		return () => {
 			if (saveTimer.current) clearTimeout(saveTimer.current);
 		};
-	}, [draftId, fromAddr, loadingDraft, selectedMailbox?.id, subject, text, to]);
+	}, [draftId, fromAddr, loadingDraft, selectedMailbox?.id, selectedMailbox?.signature, subject, text, to]);
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -177,7 +187,7 @@ export function ComposeForm({
 		setDraftId(null);
 		setTo("");
 		setSubject("");
-		setText("");
+		setText(applyMailboxSignature("", "", selectedMailbox?.signature));
 		setAttachments([]);
 		setToast({ type: "success", message: "Message sent" });
 		window.dispatchEvent(new Event("mailflare:messages-changed"));

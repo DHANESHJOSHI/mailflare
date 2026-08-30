@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChangePasswordForm } from "./change-password-form";
+import { ForwardingEmailForm } from "./forwarding-email-form";
+import { MailboxSignatureForm } from "./mailbox-signature-form";
 import { ProfileForm } from "./profile-form";
 import { ProfileAvatarForm } from "./profile-avatar-form";
 import type { AccountSettingsResponse } from "./types";
@@ -65,10 +67,30 @@ export function AccountSettings() {
 					<ProfileForm
 						initialName={user.name}
 						initialResetEmail={user.resetEmail ?? ""}
-						initialForwardingEmail={user.forwardingEmail ?? ""}
-						canForwardEmail={user.canForwardEmail}
 						email={user.email}
 					/>
+				</CardContent>
+			</Card>
+
+			{user.canForwardEmail && (
+				<Card className="rounded-3xl border-0 bg-white px-6">
+					<CardHeader>
+						<CardTitle>Forwarding email</CardTitle>
+						<CardDescription>Send a copy of incoming messages to another email address.</CardDescription>
+					</CardHeader>
+					<CardContent className="pb-6">
+						<ForwardingEmailForm initialForwardingEmail={user.forwardingEmail ?? ""} />
+					</CardContent>
+				</Card>
+			)}
+
+			<Card className="rounded-3xl border-0 bg-white px-6">
+				<CardHeader>
+					<CardTitle>Email signature</CardTitle>
+					<CardDescription>Configure the signature for the inbox currently selected above.</CardDescription>
+				</CardHeader>
+				<CardContent className="pb-6">
+					<MailboxSignatureForm />
 				</CardContent>
 			</Card>
 

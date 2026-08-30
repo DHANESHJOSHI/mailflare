@@ -13,6 +13,10 @@ export function selectMailboxForUser(db: Db, userId: string, mailboxId: string) 
 			domainId: mailboxes.domainId,
 		localPart: mailboxes.localPart,
 		displayName: mailboxes.displayName,
+		signature: mailboxes.signature,
+		autoReplyEnabled: mailboxes.autoReplyEnabled,
+		autoReplySubject: mailboxes.autoReplySubject,
+		autoReplyBody: mailboxes.autoReplyBody,
 		useAllDomains: mailboxes.useAllDomains,
 			avatarKey: mailboxes.avatarKey,
 			type: mailboxes.type,
@@ -29,6 +33,10 @@ export function selectMailboxForUser(db: Db, userId: string, mailboxId: string) 
 export function getMailboxUpdateValues(input: MailboxUpdateValues): MailboxUpdateValues {
 	const values: MailboxUpdateValues = {};
 	if ("displayName" in input) values.displayName = input.displayName?.trim() || null;
+	if ("signature" in input) values.signature = input.signature?.trim() || null;
+	if ("autoReplyEnabled" in input) values.autoReplyEnabled = input.autoReplyEnabled;
+	if ("autoReplySubject" in input) values.autoReplySubject = input.autoReplySubject?.trim() || "Out of office";
+	if ("autoReplyBody" in input) values.autoReplyBody = input.autoReplyBody?.trim() || "";
 	if ("useAllDomains" in input) values.useAllDomains = input.useAllDomains;
 	return values;
 }

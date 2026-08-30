@@ -56,6 +56,10 @@ export const mailboxes = sqliteTable(
 			.references(() => domains.id, { onDelete: "cascade" }),
 		localPart: text("local_part").notNull(),
 		displayName: text("display_name"),
+		signature: text("signature"),
+		autoReplyEnabled: integer("auto_reply_enabled", { mode: "boolean" }).notNull().default(false),
+		autoReplySubject: text("auto_reply_subject").notNull().default("Out of office"),
+		autoReplyBody: text("auto_reply_body").notNull().default(""),
 		avatarKey: text("avatar_key"),
 		type: text("type", { enum: ["personal", "shared"] }).notNull().default("personal"),
 		useAllDomains: integer("use_all_domains", { mode: "boolean" }).notNull().default(true),
@@ -65,6 +69,22 @@ export const mailboxes = sqliteTable(
 			.$defaultFn(() => new Date()),
 	},
 	(t) => [uniqueIndex("mailboxes_address_idx").on(t.domainId, t.localPart)],
+);
+
+export const autoReplyDeliveries = sqliteTable(
+	"auto_reply_deliveries",
+	{
+		id: text("id").primaryKey(),
+		mailboxId: text("mailbox_id")
+			.notNull()
+			.references(() => mailboxes.id, { onDelete: "cascade" }),
+		recipient: text("recipient").notNull(),
+		sentAt: integer("sent_at", { mode: "timestamp" }).notNull(),
+	},
+	(t) => [
+		uniqueIndex("auto_reply_deliveries_mailbox_recipient_idx").on(t.mailboxId, t.recipient),
+		index("auto_reply_deliveries_sent_idx").on(t.sentAt),
+	],
 );
 
 export const mailboxAccess = sqliteTable(
@@ -412,6 +432,7 @@ export const schema = {
 	users,
 	domains,
 	mailboxes,
+	autoReplyDeliveries,
 	mailboxAccess,
 	contacts,
 	folders,

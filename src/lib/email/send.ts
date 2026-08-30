@@ -17,6 +17,7 @@ export type SendEmailInput = {
 	subject: string;
 	html?: string;
 	text?: string;
+	headers?: Record<string, string>;
 	mailboxId: string;
 	attachments?: AttachmentContent[];
 };
@@ -73,6 +74,7 @@ export async function sendEmail(env: CloudflareEnv, input: SendEmailInput): Prom
 			from: sender.fromAddr,
 			to: input.to,
 			subject: input.subject,
+			headers: input.headers,
 			html: input.html,
 			text: input.text,
 			attachments: attachments.map((attachment) =>

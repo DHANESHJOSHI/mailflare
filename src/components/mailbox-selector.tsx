@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { CalendarDays, Check, LogOut, ShieldCheck, UserRound, UsersRound } from "lucide-react";
+import { CalendarDays, Check, LogOut, Settings, ShieldCheck, UserRound, UsersRound } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { useMessageCounts } from "@/hooks/use-message-counts";
@@ -243,6 +243,14 @@ export function MailboxSelector() {
 							<CalendarDays className="h-5 w-5 text-neutral-600" />
 							Calendar
 						</Link>
+						<Link
+							href="/settings"
+							onClick={() => setOpen(false)}
+							className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-[#f2f6fc]"
+						>
+							<Settings className="h-5 w-5 text-neutral-600" />
+							Settings
+						</Link>
 					</div>
 
 					{otherMailboxes.length > 0 && (
@@ -269,14 +277,6 @@ export function MailboxSelector() {
 					)}
 
 					<div className="mt-2 overflow-hidden rounded-[22px] bg-white">
-						<Link
-							href="/settings"
-							onClick={() => setOpen(false)}
-							className="flex items-center gap-3 px-5 py-4 text-sm font-medium text-neutral-800 hover:bg-[#f2f6fc]"
-						>
-							<UserRound className="h-5 w-5 text-neutral-600" />
-							Account
-						</Link>
 						{user?.role === "admin" && (
 							<Link
 								href="/admin"
