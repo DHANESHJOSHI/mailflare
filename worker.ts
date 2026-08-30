@@ -6,7 +6,9 @@ import {
 	type InboundQueueMessage,
 } from "./src/lib/email/inbound";
 import { processOutboundQueue, type OutboundQueueMessage } from "./src/lib/email/send";
-import { isInboundQueueMessage } from "./worker-utils";
+import { isInboundQueueMessage, isWebhookRetryMessage } from "./worker-utils";
+import { processWebhookRetry, type WebhookRetryMessage } from "./src/lib/email/webhooks";
+import { resolveIncomingMail, forwardMessage } from "./src/lib/email/incoming";
 import { getUserFromSession } from "./src/lib/auth/session";
 import { getSessionTokenFromRequest } from "./src/lib/realtime/utils";
 import {
@@ -38,16 +40,26 @@ export default {
 
 	async email(message: ForwardableEmailMessage, env: CloudflareEnv, ctx: ExecutionContext) {
 		try {
+			// Domain routing rules are resolved here rather than in the queue because reject and
+			// forward can only be actioned on the live ForwardableEmailMessage.
+			const decision = await resolveIncomingMail(env, message.from, message.to);
+
+			if (decision?.action === "reject") {
+				message.setReject(decision.rejectReason ?? "Message rejected by routing rule");
+				return;
+			}
+
+			if (decision?.action === "forward" && decision.forwardTo) {
+				const forwarded = await forwardMessage(message, decision.forwardTo);
+				// A forward rule drops the message unless it was explicitly asked to keep a copy.
+				// If the forward itself failed we still store it, so mail is never silently lost.
+				if (forwarded && !decision.keepCopy) return;
+			}
+
 			if (message.headers.get(MAILFLARE_FORWARDED_HEADER) !== "1") {
 				const forwardingDestination = await getAccountForwardingDestination(env, message.to);
 				if (forwardingDestination) {
-					try {
-						const forwardingHeaders = new Headers();
-						forwardingHeaders.set(MAILFLARE_FORWARDED_HEADER, "1");
-						await message.forward(forwardingDestination, forwardingHeaders);
-					} catch (error) {
-						console.error(`Account forwarding failed for ${message.to}`, error);
-					}
+					await forwardMessage(message, forwardingDestination);
 				}
 			}
 			const rawR2Key = await storeRawToR2(env, message.from, message.to, message.raw);
@@ -69,6 +81,8 @@ export default {
 			try {
 				if (isInboundQueueMessage(msg.body)) {
 					await processInboundMessage(env, msg.body);
+				} else if (isWebhookRetryMessage(msg.body)) {
+					await processWebhookRetry(env, msg.body as WebhookRetryMessage);
 				} else {
 					await processOutboundQueue(env, msg.body as OutboundQueueMessage);
 				}

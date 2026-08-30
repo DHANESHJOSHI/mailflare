@@ -26,7 +26,7 @@ export async function GET(request: Request) {
 	const rows = await db
 		.select()
 		.from(routingRules)
-		.where(eq(routingRules.mailboxId, mailboxId));
+		.where(and(eq(routingRules.mailboxId, mailboxId), eq(routingRules.scope, "mailbox")));
 	return NextResponse.json({ rules: rows });
 }
 
@@ -69,6 +69,7 @@ export async function POST(request: Request) {
 		id,
 		userId: user.id,
 		domainId: mailbox.domainId,
+		scope: "mailbox",
 		pattern: parsed.data.matchValue.trim(),
 		matchField: parsed.data.matchField,
 		matchOperator: parsed.data.matchOperator,
