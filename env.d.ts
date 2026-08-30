@@ -3,7 +3,11 @@ interface CloudflareEnv {
 	EMAIL: SendEmail;
 	BUCKET: R2Bucket;
 	INBOUND_QUEUE: Queue<import("./src/lib/email/inbound").InboundQueueMessage>;
-	OUTBOUND_QUEUE: Queue<import("./src/lib/email/send").OutboundQueueMessage>;
+	// The outbound queue also carries webhook retries so that scheduled redelivery needs no extra binding.
+	OUTBOUND_QUEUE: Queue<
+		| import("./src/lib/email/send").OutboundQueueMessage
+		| import("./src/lib/email/webhooks").WebhookRetryMessage
+	>;
 	ASSETS: Fetcher;
 	IMAGES: ImagesBinding;
 	WORKER_SELF_REFERENCE: Fetcher;
