@@ -60,8 +60,5 @@ export function getCloudflareAuthHint(errors: CfApiError[]) {
 
 export function getEmailWorkerName(env: CloudflareEnv): string {
 	const workerName = env.CF_EMAIL_WORKER_NAME?.trim();
-	// if (!workerName) {
-	// 	throw new Error("CF_EMAIL_WORKER_NAME is required and must match the deployed Worker name.");
-	// }
 	return workerName || "mailflare";
 }
