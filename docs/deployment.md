@@ -2,6 +2,16 @@
 
 This guide covers Cloudflare deployment, runtime configuration, database backups, and application updates.
 
+## Deployment overview
+
+Set up Mailflare in three steps:
+
+1. **Deploy the app:** use the Deploy to Cloudflare button, set the app name to `mailflare`, and provide the required `CF_TOKEN`.
+2. **Complete setup:** open the deployed app and follow `/setup` to check the installation and create the first admin account.
+3. **Connect your domain:** add a domain managed by the same Cloudflare account. Mailflare configures email routing and sending, then helps you create the first mailbox.
+
+The Worker name must remain `mailflare`. Before starting, create the required `CF_TOKEN` with **Zone Read**, **Email Routing Edit**, **Email Sending Edit**, and **Email Routing Rules Write** permissions for every domain you plan to connect.
+
 ## One-click deployment
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/hieunc229/mailflare)
@@ -12,33 +22,39 @@ Cloudflare automatically detects `npm run build` as the build command and `npm r
 
 Keep `wrangler.jsonc` committed. Do not commit `.dev.vars`; enter secrets during Cloudflare setup or keep them in a local `.dev.vars` file.
 
+### Step 1: Deploy the app
+
+1. Click **Deploy to Cloudflare** above and sign in to Cloudflare if prompted.
+2. Choose the Cloudflare account that owns the domain you want to use.
+3. Set the app name to exactly `mailflare`. Do not rename it.
+4. Add `CF_TOKEN` when Cloudflare asks for the app's runtime variables or secrets.
+5. Start the deployment and wait for Cloudflare to finish provisioning and deploying the Worker.
+
 ## Required configuration
 
-Mailflare needs these runtime values:
+Mailflare requires this runtime value:
 
-- `CF_TOKEN` — a scoped Cloudflare API token with Zone Read, Email Routing Edit, Email Sending Edit, and Email Routing Rules Write access for the domains you will connect. This is separate from the token Cloudflare uses to deploy the app.
-- `CF_EMAIL_WORKER_NAME` — the deployed Worker name. It must match the Worker name exactly so Mailflare can create Email Routing rules.
-- `CF_AID` — the Cloudflare account ID. This is optional for normal mail use but required for database backups.
+- `CF_TOKEN` — a scoped Cloudflare API token with **Zone Read**, **Email Routing Edit**, **Email Sending Edit**, and **Email Routing Rules Write** access for the domains you will connect. This is separate from the token Cloudflare uses to deploy the app.
 
-You can use a legacy Global API Key instead of `CF_TOKEN` by setting both `CF_API_KEY` and `CF_EMAIL`.
+Paste only the token secret into `CF_TOKEN`. Do not include the word `Bearer` and do not use the token ID. The token must belong to the same Cloudflare account as the domains you connect.
 
-Copy `.dev.vars.example` when configuring a local environment:
+## Step 2: Complete first-run setup
 
-```bash
-cp .dev.vars.example .dev.vars
-```
+1. Open the URL of the deployed `mailflare` Worker.
+2. Go to `/setup` if Mailflare does not take you there automatically.
+3. Let Mailflare check the required Cloudflare configuration and initialize the empty D1 database.
+4. Create the first admin account when prompted.
 
-Paste only the token value into `CF_TOKEN`; do not include `Bearer` and do not use the token ID.
+The setup page initializes only a new, empty database. It never applies later migrations to an existing database.
 
-## First-run setup
+## Step 3: Connect your domain
 
-Open `/setup` after deployment. Mailflare checks the required runtime configuration and initializes an empty D1 database. It never applies later migrations to an existing database from the setup page.
+1. Enter a domain that already uses Cloudflare DNS on the same account as `CF_TOKEN`.
+2. Continue while Mailflare enables Email Routing and configures the required routing and sending DNS.
+3. Choose the address for your first mailbox and finish setup.
+4. Open the inbox and send a test message to the new address.
 
-Use the normal migration command when updating an existing installation:
-
-```bash
-npm run db:migrate:remote
-```
+To connect more domains later, open **Admin → Domains**, select **New domain**, and enter the hostname. Mailflare configures Email Routing and Email Sending automatically.
 
 ## Manual deployment
 
@@ -59,25 +75,13 @@ npm run db:migrate:remote
 
 Remote migrations require the target account's `database_id` in your local `wrangler.jsonc`. Do not commit an account-specific database ID to a reusable repository.
 
-## Custom Worker names
+## Worker name
 
-If you rename the Worker, keep these values aligned:
-
-- `name` in `wrangler.jsonc`
-- `services[].service` for the `WORKER_SELF_REFERENCE` binding
-- `CF_EMAIL_WORKER_NAME`
-
-Cloudflare service bindings use a literal Worker name and cannot inherit the top-level `name` value automatically.
+The Worker name is fixed to `mailflare`. Email Routing rules and the `WORKER_SELF_REFERENCE` service binding use this name, so do not rename the Worker.
 
 ## Database backups
 
 Manual and scheduled backups use the `DATABASE_BACKUP_WORKFLOW` binding declared in `wrangler.jsonc`. Deploy the complete Worker with `npm run deploy` whenever this binding is added or changed.
-
-Backups require:
-
-- `CF_AID`
-- `D1_DATABASE_ID`
-- `D1_BACKUP_TOKEN`, or a `CF_TOKEN` that is also allowed to export the D1 database
 
 ## Updating Mailflare
 

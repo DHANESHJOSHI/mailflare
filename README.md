@@ -31,15 +31,15 @@ A [Paid Worker](https://developers.cloudflare.com/workers/platform/pricing/) pla
 
 ## Deploy
 
-The easiest way to get started is with the **Deploy to Cloudflare** button above. You will need:
+Getting started takes three steps:
 
-- A Cloudflare account.
-- A domain managed by Cloudflare.
-- A Cloudflare API token that Mailflare can use to configure email routing.
+1. **Deploy the app.** Click **Deploy to Cloudflare** and keep the app name as `mailflare`. The app will not work correctly under another Worker name.
+2. **Complete setup.** Open the deployed app and follow `/setup` to check the installation and create your admin account.
+3. **Connect your domain.** Add a domain managed by the same Cloudflare account. Mailflare configures its email routing and helps you create the first mailbox.
 
-After deployment, open your Mailflare URL and follow the first-run setup. The setup checks your Cloudflare configuration, creates the initial account, and helps you connect your first domain.
+`CF_TOKEN` is required during deployment. Use a scoped Cloudflare API token with **Zone Read**, **Email Routing Edit**, **Email Sending Edit**, and **Email Routing Rules Write** permissions for the domains you want to connect. This runtime token is separate from the token Cloudflare uses to deploy the app.
 
-See the [deployment guide](docs/deployment.md) for required permissions, manual deployment, backups, updates, and custom Worker names.
+See the [deployment guide](docs/deployment.md) for required permissions, manual deployment, backups, and updates.
 
 ## Local development
 

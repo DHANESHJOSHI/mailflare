@@ -41,9 +41,6 @@
       "NEXT_PUBLIC_TURNSTILE_SITE_KEY": {
         "description": "Cloudflare Turnstile public site key used by the login and first-run registration widgets."
       },
-      "CF_EMAIL_WORKER_NAME": {
-        "description": "Worker name used when creating Cloudflare Email Routing rules. Set this to the deployed Worker name; if you rename the Worker, update this value too."
-      },
       "GITHUB_UPDATE_TOKEN": {
         "description": "Fine-grained GitHub token for the installation repository with Actions: write permission, Contents: write read permission. Used only by the admin update endpoint to dispatch update.yml."
       },

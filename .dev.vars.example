@@ -3,7 +3,6 @@
 CF_TOKEN=your_api_token_with_zone_email_permissions
 # Optional account id. Read by the database backup workflow.
 # CF_AID=your_account_id
-# CF_EMAIL_WORKER_NAME=mailflare
 
 # Optional: lets the admin dashboard trigger the GitHub update workflow.
 # GITHUB_UPDATE_TOKEN=github_pat_with_actions_write
