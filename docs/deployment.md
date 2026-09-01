@@ -8,6 +8,8 @@ This guide covers Cloudflare deployment, runtime configuration, database backups
 
 The deployment flow reads `wrangler.jsonc`, provisions the required Worker bindings, builds the OpenNext Worker, applies D1 migrations, and deploys the app.
 
+Cloudflare automatically detects `npm run build` as the build command and `npm run deploy` as the deploy command from `package.json`.
+
 Keep `wrangler.jsonc` committed. Do not commit `.dev.vars`; enter secrets during Cloudflare setup or keep them in a local `.dev.vars` file.
 
 ## Required configuration
@@ -44,15 +46,15 @@ Install dependencies, configure the Cloudflare bindings in `wrangler.jsonc`, and
 
 ```bash
 npm install
-npm run deploy
+npm run deploy:local
 ```
 
-The deploy command builds the OpenNext application and uploads the complete Worker with Wrangler. The complete Worker is required because `worker.ts` also handles inbound email, queues, workflows, and the real-time Durable Object.
+The local deploy command builds the OpenNext application, applies pending D1 migrations, and uploads the complete Worker with Wrangler. The complete Worker is required because `worker.ts` also handles inbound email, queues, workflows, and the real-time Durable Object.
 
 To migrate an existing remote D1 database before deploying, use:
 
 ```bash
-npm run deploy:with-migrations
+npm run db:migrate:remote
 ```
 
 Remote migrations require the target account's `database_id` in your local `wrangler.jsonc`. Do not commit an account-specific database ID to a reusable repository.
