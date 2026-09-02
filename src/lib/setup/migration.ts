@@ -22,6 +22,7 @@ const MIGRATION_NAMES = [
 	"0020_add_calendar_templates_schedule.sql",
 	"0021_add_mailbox_signature.sql",
 	"0022_add_mailbox_auto_reply.sql",
+	"0023_add_mailbox_aliases.sql",
 ];
 
 const INITIAL_SCHEMA_SQL = `
@@ -32,6 +33,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS domains_hostname_idx ON domains(hostname);
 CREATE INDEX IF NOT EXISTS domains_user_idx ON domains(user_id);
 CREATE TABLE IF NOT EXISTS mailboxes (id text PRIMARY KEY NOT NULL, user_id text NOT NULL REFERENCES users(id) ON DELETE cascade, domain_id text NOT NULL REFERENCES domains(id) ON DELETE cascade, local_part text NOT NULL, display_name text, signature text, auto_reply_enabled integer DEFAULT false NOT NULL, auto_reply_subject text DEFAULT 'Out of office' NOT NULL, auto_reply_body text DEFAULT '' NOT NULL, avatar_key text, type text DEFAULT 'personal' NOT NULL, use_all_domains integer DEFAULT true NOT NULL, disabled integer DEFAULT false NOT NULL, created_at integer NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS mailboxes_address_idx ON mailboxes(domain_id, local_part);
+CREATE TABLE IF NOT EXISTS mailbox_aliases (id text PRIMARY KEY NOT NULL, mailbox_id text NOT NULL REFERENCES mailboxes(id) ON DELETE cascade, domain_id text NOT NULL REFERENCES domains(id) ON DELETE cascade, local_part text NOT NULL, created_at integer NOT NULL);
+CREATE UNIQUE INDEX IF NOT EXISTS mailbox_aliases_address_idx ON mailbox_aliases(domain_id, local_part);
+CREATE INDEX IF NOT EXISTS mailbox_aliases_mailbox_idx ON mailbox_aliases(mailbox_id);
 CREATE TABLE IF NOT EXISTS auto_reply_deliveries (id text PRIMARY KEY NOT NULL, mailbox_id text NOT NULL REFERENCES mailboxes(id) ON DELETE cascade, recipient text NOT NULL, sent_at integer NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS auto_reply_deliveries_mailbox_recipient_idx ON auto_reply_deliveries(mailbox_id, recipient);
 CREATE INDEX IF NOT EXISTS auto_reply_deliveries_sent_idx ON auto_reply_deliveries(sent_at);

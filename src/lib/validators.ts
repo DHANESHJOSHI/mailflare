@@ -130,6 +130,17 @@ export const updateMailboxSchema = z.object({
 	useAllDomains: z.boolean().optional(),
 });
 
+export const createMailboxAliasSchema = z.object({
+	domainId: z.string().min(1),
+	localPart: z
+		.string()
+		.trim()
+		.min(1)
+		.max(64)
+		.regex(/^[a-zA-Z0-9._%+-]+$/)
+		.transform((value) => value.toLowerCase()),
+});
+
 export const folderSchema = z.object({
 	mailboxId: z.string().min(1),
 	name: z.string().trim().min(1).max(80),

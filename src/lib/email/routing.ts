@@ -1,6 +1,6 @@
 import { eq, and, desc } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { domains, folders, mailboxes, routingRules } from "@/db/schema";
+import { domains, folders, mailboxAliases, mailboxes, routingRules } from "@/db/schema";
 import { getEmailAddress } from "@/lib/email/address";
 import { getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
 import { parseAddress } from "@/lib/utils";
@@ -50,7 +50,9 @@ export async function resolveInboundAddress(
 			eq(mailboxes.disabled, false),
 		))
 		.limit(1);
-	const mailbox = exactMailbox ?? await resolveMailboxDomainAlias(db, domain.hostname, parsed.local);
+	const mailbox = exactMailbox
+		?? await resolveMailboxAlias(db, domain.id, parsed.local)
+		?? await resolveMailboxDomainAlias(db, domain.hostname, parsed.local);
 
 	if (!mailbox) return null;
 
@@ -66,6 +68,20 @@ export async function resolveInboundAddress(
 			displayName: mailbox.displayName,
 		},
 	};
+}
+
+async function resolveMailboxAlias(db: AppDatabase, domainId: string, localPart: string) {
+	const [row] = await db
+		.select({ mailbox: mailboxes })
+		.from(mailboxAliases)
+		.innerJoin(mailboxes, eq(mailboxAliases.mailboxId, mailboxes.id))
+		.where(and(
+			eq(mailboxAliases.domainId, domainId),
+			eq(mailboxAliases.localPart, localPart),
+			eq(mailboxes.disabled, false),
+		))
+		.limit(1);
+	return row?.mailbox ?? null;
 }
 
 async function resolveMailboxDomainAlias(db: AppDatabase, hostname: string, localPart: string) {

@@ -1,6 +1,6 @@
 import { authFetch } from "@/lib/auth/client";
 import { clearMailboxesCache } from "@/components/mailbox-provider-utils";
-import type { MailboxDetail, MailboxDetailResponse, SharedInboxAccessResponse } from "./types";
+import type { MailboxAliasesResponse, MailboxDetail, MailboxDetailResponse, SharedInboxAccessResponse } from "./types";
 
 export function getMailboxAddress(mailbox: Pick<MailboxDetail, "localPart" | "hostname">): string {
 	return `${mailbox.localPart}@${mailbox.hostname}`;
@@ -59,6 +59,38 @@ export async function revokeSharedInboxAccess(id: string, userId: string): Promi
 	});
 	const json = (await res.json()) as { error?: string };
 	if (!res.ok) throw new Error(json.error ?? "Failed to remove account");
+}
+
+export async function fetchMailboxAliases(id: string): Promise<MailboxAliasesResponse> {
+	const res = await authFetch(`/api/mailboxes/${id}/aliases`);
+	const json = (await res.json()) as MailboxAliasesResponse;
+	if (!res.ok) throw new Error(json.error ?? "Failed to load aliases");
+	return json;
+}
+
+export async function createMailboxAlias(
+	id: string,
+	input: { domainId: string; localPart: string },
+): Promise<void> {
+	const res = await authFetch(`/api/mailboxes/${id}/aliases`, {
+		method: "POST",
+		headers: { "Content-Type": "application/json" },
+		body: JSON.stringify(input),
+	});
+	const json = (await res.json()) as { error?: string };
+	if (!res.ok) throw new Error(json.error ?? "Failed to add alias");
+
+	clearMailboxesCache();
+}
+
+export async function deleteMailboxAlias(id: string, aliasId: string): Promise<void> {
+	const res = await authFetch(`/api/mailboxes/${id}/aliases?aliasId=${encodeURIComponent(aliasId)}`, {
+		method: "DELETE",
+	});
+	const json = (await res.json()) as { error?: string };
+	if (!res.ok) throw new Error(json.error ?? "Failed to remove alias");
+
+	clearMailboxesCache();
 }
 
 export async function deleteMailbox(id: string): Promise<void> {

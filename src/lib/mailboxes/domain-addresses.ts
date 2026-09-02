@@ -1,8 +1,20 @@
 import { and, eq } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { domains, mailboxes } from "@/db/schema";
+import { domains, mailboxAliases, mailboxes } from "@/db/schema";
 import { deleteEmailRoutingRuleForAddress, ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
 import type { MailboxDomainAddressInput } from "./domain-addresses-types";
+
+export async function getMailboxAliasAddresses(
+	db: AppDatabase,
+	mailboxId: string,
+): Promise<string[]> {
+	const aliases = await db
+		.select({ localPart: mailboxAliases.localPart, hostname: domains.hostname })
+		.from(mailboxAliases)
+		.innerJoin(domains, eq(mailboxAliases.domainId, domains.id))
+		.where(eq(mailboxAliases.mailboxId, mailboxId));
+	return aliases.map((alias) => `${alias.localPart}@${alias.hostname}`.toLowerCase());
+}
 
 export async function getMailboxDomainAddresses(
 	db: AppDatabase,
@@ -16,7 +28,10 @@ export async function getMailboxDomainAddresses(
 	if (!primaryDomain) return [];
 
 	const primaryAddress = `${mailbox.localPart}@${primaryDomain.hostname}`.toLowerCase();
-	if (!mailbox.useAllDomains) return [primaryAddress];
+	const aliasAddresses = await getMailboxAliasAddresses(db, mailbox.id);
+	if (!mailbox.useAllDomains) {
+		return [...new Set([primaryAddress, ...aliasAddresses])];
+	}
 
 	const availableDomains = await db
 		.select({ id: domains.id, hostname: domains.hostname })
@@ -31,10 +46,13 @@ export async function getMailboxDomainAddresses(
 	);
 
 	return [
-		primaryAddress,
-		...availableDomains
-			.filter((domain) => domain.id !== mailbox.domainId && !assignedDomainIds.has(domain.id))
-			.map((domain) => `${mailbox.localPart}@${domain.hostname}`.toLowerCase()),
+		...new Set([
+			primaryAddress,
+			...availableDomains
+				.filter((domain) => domain.id !== mailbox.domainId && !assignedDomainIds.has(domain.id))
+				.map((domain) => `${mailbox.localPart}@${domain.hostname}`.toLowerCase()),
+			...aliasAddresses,
+		]),
 	];
 }
 

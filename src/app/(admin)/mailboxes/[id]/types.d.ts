@@ -29,6 +29,25 @@ export type MailboxAvatarUploadResponse = {
 	error?: string;
 };
 
+export type MailboxAlias = {
+	id: string;
+	domainId: string;
+	localPart: string;
+	hostname: string;
+	createdAt: string;
+};
+
+export type MailboxAliasDomain = {
+	id: string;
+	hostname: string;
+};
+
+export type MailboxAliasesResponse = {
+	aliases: MailboxAlias[];
+	availableDomains: MailboxAliasDomain[];
+	error?: string;
+};
+
 export type SharedInboxMember = {
 	id: string;
 	userId: string;
