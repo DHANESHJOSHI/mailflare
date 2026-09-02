@@ -8,6 +8,14 @@ Mailflare is a self-hosted email inbox for custom domains, built on Cloudflare.
 
 ![Mailflare inbox](/screenshot.png)
 
+Thanks to mailflare sponsors. Want to support the project? Drop [@hieuSSR](https://x.com/hieuSSR) a message
+
+### Featured sponsors
+
+<a target="_blank" href="https://sequenzy.com/?ref=hieunc229/mailflare">
+  <img width="160" src="/sponsors/sequenzy.png" alt="Sequenzy">
+</a>
+
 ## What you can do
 
 - Connect domains and set up Cloudflare Email Routing from the dashboard.
