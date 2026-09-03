@@ -1,8 +1,21 @@
 import { and, eq } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { domains, mailboxes } from "@/db/schema";
+import { domains, mailboxAliases, mailboxes } from "@/db/schema";
 import { deleteEmailRoutingRuleForAddress, ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
+import { normalizeRecipientLocalPart } from "@/lib/email/recipient-address";
 import type { MailboxDomainAddressInput } from "./domain-addresses-types";
+
+export async function getMailboxAliasAddresses(
+	db: AppDatabase,
+	mailboxId: string,
+): Promise<string[]> {
+	const aliases = await db
+		.select({ localPart: mailboxAliases.localPart, hostname: domains.hostname })
+		.from(mailboxAliases)
+		.innerJoin(domains, eq(mailboxAliases.domainId, domains.id))
+		.where(eq(mailboxAliases.mailboxId, mailboxId));
+	return aliases.map((alias) => `${alias.localPart}@${alias.hostname}`.toLowerCase());
+}
 
 export async function getMailboxDomainAddresses(
 	db: AppDatabase,
@@ -16,25 +29,45 @@ export async function getMailboxDomainAddresses(
 	if (!primaryDomain) return [];
 
 	const primaryAddress = `${mailbox.localPart}@${primaryDomain.hostname}`.toLowerCase();
-	if (!mailbox.useAllDomains) return [primaryAddress];
+	const aliasAddresses = await getMailboxAliasAddresses(db, mailbox.id);
+	if (!mailbox.useAllDomains) {
+		return [...new Set([primaryAddress, ...aliasAddresses])];
+	}
 
 	const availableDomains = await db
 		.select({ id: domains.id, hostname: domains.hostname })
 		.from(domains)
 		.where(and(eq(domains.userId, primaryDomain.userId), eq(domains.status, "active")));
 	const assignedMailboxes = await db
-		.select({ id: mailboxes.id, domainId: mailboxes.domainId })
-		.from(mailboxes)
-		.where(eq(mailboxes.localPart, mailbox.localPart));
+		.select({ id: mailboxes.id, domainId: mailboxes.domainId, localPart: mailboxes.localPart })
+		.from(mailboxes);
+	const assignedAliases = await db
+		.select({
+			mailboxId: mailboxAliases.mailboxId,
+			domainId: mailboxAliases.domainId,
+			localPart: mailboxAliases.localPart,
+		})
+		.from(mailboxAliases);
+	const normalizedLocalPart = normalizeRecipientLocalPart(mailbox.localPart);
 	const assignedDomainIds = new Set(
-		assignedMailboxes.filter((item) => item.id !== mailbox.id).map((item) => item.domainId),
+		[
+			...assignedMailboxes.filter(
+				(item) => item.id !== mailbox.id && normalizeRecipientLocalPart(item.localPart) === normalizedLocalPart,
+			),
+			...assignedAliases.filter(
+				(item) => item.mailboxId !== mailbox.id && normalizeRecipientLocalPart(item.localPart) === normalizedLocalPart,
+			),
+		].map((item) => item.domainId),
 	);
 
 	return [
-		primaryAddress,
-		...availableDomains
-			.filter((domain) => domain.id !== mailbox.domainId && !assignedDomainIds.has(domain.id))
-			.map((domain) => `${mailbox.localPart}@${domain.hostname}`.toLowerCase()),
+		...new Set([
+			primaryAddress,
+			...availableDomains
+				.filter((domain) => domain.id !== mailbox.domainId && !assignedDomainIds.has(domain.id))
+				.map((domain) => `${mailbox.localPart}@${domain.hostname}`.toLowerCase()),
+			...aliasAddresses,
+		]),
 	];
 }
 

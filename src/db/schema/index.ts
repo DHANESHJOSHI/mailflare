@@ -71,6 +71,27 @@ export const mailboxes = sqliteTable(
 	(t) => [uniqueIndex("mailboxes_address_idx").on(t.domainId, t.localPart)],
 );
 
+export const mailboxAliases = sqliteTable(
+	"mailbox_aliases",
+	{
+		id: text("id").primaryKey(),
+		mailboxId: text("mailbox_id")
+			.notNull()
+			.references(() => mailboxes.id, { onDelete: "cascade" }),
+		domainId: text("domain_id")
+			.notNull()
+			.references(() => domains.id, { onDelete: "cascade" }),
+		localPart: text("local_part").notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.$defaultFn(() => new Date()),
+	},
+	(t) => [
+		uniqueIndex("mailbox_aliases_address_idx").on(t.domainId, t.localPart),
+		index("mailbox_aliases_mailbox_idx").on(t.mailboxId),
+	],
+);
+
 export const autoReplyDeliveries = sqliteTable(
 	"auto_reply_deliveries",
 	{
@@ -432,6 +453,7 @@ export const schema = {
 	users,
 	domains,
 	mailboxes,
+	mailboxAliases,
 	autoReplyDeliveries,
 	mailboxAccess,
 	contacts,

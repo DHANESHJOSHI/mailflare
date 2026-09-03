@@ -1,9 +1,9 @@
 import { eq, and, desc } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { domains, folders, mailboxes, routingRules } from "@/db/schema";
+import { domains, folders, mailboxAliases, mailboxes, routingRules } from "@/db/schema";
 import { getEmailAddress } from "@/lib/email/address";
 import { getMailboxDomainAddresses } from "@/lib/mailboxes/domain-addresses";
-import { parseAddress } from "@/lib/utils";
+import { normalizeRecipientLocalPart, parseRecipientAddress } from "@/lib/email/recipient-address";
 
 export type ResolvedMailbox = {
 	mailboxId: string;
@@ -30,7 +30,7 @@ export async function resolveInboundAddress(
 	db: AppDatabase,
 	toAddress: string,
 ): Promise<RoutingDecision | null> {
-	const parsed = parseAddress(toAddress);
+	const parsed = parseRecipientAddress(toAddress);
 	if (!parsed) return null;
 
 	const [domain] = await db
@@ -41,16 +41,19 @@ export async function resolveInboundAddress(
 
 	if (!domain) return null;
 
-	const [exactMailbox] = await db
+	const exactMailboxes = await db
 		.select()
 		.from(mailboxes)
 		.where(and(
 			eq(mailboxes.domainId, domain.id),
-			eq(mailboxes.localPart, parsed.local),
 			eq(mailboxes.disabled, false),
-		))
-		.limit(1);
-	const mailbox = exactMailbox ?? await resolveMailboxDomainAlias(db, domain.hostname, parsed.local);
+		));
+	const exactMailbox = exactMailboxes.find(
+		(mailbox) => normalizeRecipientLocalPart(mailbox.localPart) === parsed.localPart,
+	);
+	const mailbox = exactMailbox
+		?? await resolveMailboxAlias(db, domain.id, parsed.localPart)
+		?? await resolveMailboxDomainAlias(db, parsed.localPart, parsed.normalizedAddress);
 
 	if (!mailbox) return null;
 
@@ -68,15 +71,39 @@ export async function resolveInboundAddress(
 	};
 }
 
-async function resolveMailboxDomainAlias(db: AppDatabase, hostname: string, localPart: string) {
+async function resolveMailboxAlias(db: AppDatabase, domainId: string, localPart: string) {
+	const rows = await db
+		.select({ mailbox: mailboxes, aliasLocalPart: mailboxAliases.localPart })
+		.from(mailboxAliases)
+		.innerJoin(mailboxes, eq(mailboxAliases.mailboxId, mailboxes.id))
+		.where(and(
+			eq(mailboxAliases.domainId, domainId),
+			eq(mailboxes.disabled, false),
+		));
+	const row = rows.find(
+		(item) => normalizeRecipientLocalPart(item.aliasLocalPart) === localPart,
+	);
+	return row?.mailbox ?? null;
+}
+
+async function resolveMailboxDomainAlias(
+	db: AppDatabase,
+	localPart: string,
+	normalizedAddress: string,
+) {
 	const candidates = await db
 		.select()
 		.from(mailboxes)
-		.where(and(eq(mailboxes.localPart, localPart), eq(mailboxes.useAllDomains, true), eq(mailboxes.disabled, false)));
+		.where(and(eq(mailboxes.useAllDomains, true), eq(mailboxes.disabled, false)));
 
 	for (const mailbox of candidates) {
+		if (normalizeRecipientLocalPart(mailbox.localPart) !== localPart) {
+			continue;
+		}
 		const addresses = await getMailboxDomainAddresses(db, mailbox);
-		if (addresses.includes(`${localPart}@${hostname}`.toLowerCase())) {
+		if (addresses.some(
+			(address) => parseRecipientAddress(address)?.normalizedAddress === normalizedAddress,
+		)) {
 			return mailbox;
 		}
 	}
