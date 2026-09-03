@@ -116,12 +116,19 @@ export async function POST(request: Request, { params }: MailboxRouteParams) {
 	}
 
 	const aliasId = newId("als");
-	await db.insert(mailboxAliases).values({
-		id: aliasId,
-		mailboxId: id,
-		domainId: domain.id,
-		localPart,
-	});
+	const inserted = await db
+		.insert(mailboxAliases)
+		.values({
+			id: aliasId,
+			mailboxId: id,
+			domainId: domain.id,
+			localPart,
+		})
+		.onConflictDoNothing()
+		.returning({ id: mailboxAliases.id });
+	if (inserted.length === 0) {
+		return NextResponse.json({ error: "An alias already uses this address" }, { status: 409 });
+	}
 
 	try {
 		await ensureEmailRoutingRuleToWorker(env, domain.zoneId, `${localPart}@${domain.hostname}`);
