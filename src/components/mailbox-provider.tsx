@@ -22,6 +22,10 @@ export type MailboxOption = {
 	localPart: string;
 	hostname: string;
 	displayName: string | null;
+	signature?: string | null;
+	autoReplyEnabled?: boolean;
+	autoReplySubject?: string;
+	autoReplyBody?: string;
 	hasAvatar?: boolean;
 	type?: "personal" | "shared";
 	permission?: "read_only" | "send_as" | "send_on_behalf" | "full_access";

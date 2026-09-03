@@ -148,6 +148,34 @@
       "when": 1788345600000,
       "tag": "0020_add_calendar_templates_schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1788432000000,
+      "tag": "0021_add_mailbox_signature",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "6",
+      "when": 1788518400000,
+      "tag": "0022_add_mailbox_auto_reply",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "6",
+      "when": 1788604800000,
+      "tag": "0023_add_mailbox_aliases",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1788604800001,
+      "tag": "0024_add_advanced_routing_and_webhook_retries",
+      "breakpoints": true
     }
   ]
 }

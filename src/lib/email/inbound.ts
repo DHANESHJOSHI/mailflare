@@ -6,7 +6,8 @@ import { buildSnippet, parseRawMime } from "@/lib/email/parse";
 import { resolveInboundAddress, resolveInboxRuleDestination } from "@/lib/email/routing";
 import { dispatchWebhooks } from "@/lib/email/webhooks";
 import { getMessageContactNames, upsertContactFromAddress } from "@/lib/contacts/service";
-import { formatEmailAddress, getEmailAddress } from "@/lib/email/address";
+import { getEmailAddress } from "@/lib/email/address";
+import { sendMailboxAutoReply } from "@/lib/email/auto-reply";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import { listMessageAttachments, storeMessageAttachments } from "@/lib/email/attachments";
 import { getUnsubscribeUrlFromRawR2Key } from "@/lib/email/unsubscribe";
@@ -62,7 +63,7 @@ export async function processInboundMessage(
 	const messageId = newId("msg");
 	const snippet = buildSnippet(parsed.text, parsed.html);
 	const deliveredAddress = getEmailAddress(payload.to) || `${decision.mailbox.localPart}@${decision.mailbox.hostname}`;
-	const toAddr = formatEmailAddress(deliveredAddress, decision.mailbox.displayName ?? decision.mailbox.localPart);
+	const toAddr = payload.to;
 	const fromAddr = parsed.fromAddr ?? payload.from;
 	const destination = await resolveInboxRuleDestination(db, {
 		mailboxId: decision.mailbox.mailboxId,
@@ -100,6 +101,21 @@ export async function processInboundMessage(
 	} catch (error) {
 		await db.delete(messages).where(eq(messages.id, messageId));
 		throw error;
+	}
+
+	if (destination.status === "received") {
+		try {
+			await sendMailboxAutoReply(env, {
+				mailboxId: decision.mailbox.mailboxId,
+				userId: decision.mailbox.userId,
+				deliveredAddress,
+				fromAddress: fromAddr,
+				incomingMessageId: parsed.messageId,
+				headers: payload.headers,
+			});
+		} catch (error) {
+			console.error(`Auto-reply failed for mailbox ${decision.mailbox.mailboxId}`, error);
+		}
 	}
 
 	const notificationUserIds = await getMailboxNotificationUserIds(

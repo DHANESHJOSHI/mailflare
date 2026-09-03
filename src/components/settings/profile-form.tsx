@@ -7,19 +7,16 @@ import { Label } from "@/components/ui/label";
 import { authFetch } from "@/lib/auth/client";
 import type { ProfileFormProps, ProfileFormResponse } from "./types";
 
-export function ProfileForm({ initialName, initialResetEmail, initialForwardingEmail, canForwardEmail, email }: ProfileFormProps) {
+export function ProfileForm({ initialName, initialResetEmail, email }: ProfileFormProps) {
 	const [name, setName] = useState(initialName);
 	const [resetEmail, setResetEmail] = useState(initialResetEmail);
-	const [forwardingEmail, setForwardingEmail] = useState(initialForwardingEmail);
 	const [savedName, setSavedName] = useState(initialName);
 	const [savedResetEmail, setSavedResetEmail] = useState(initialResetEmail);
-	const [savedForwardingEmail, setSavedForwardingEmail] = useState(initialForwardingEmail);
 	const [status, setStatus] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const hasChanges =
 		name.trim() !== savedName ||
-		resetEmail.trim() !== savedResetEmail ||
-		forwardingEmail.trim() !== savedForwardingEmail;
+		resetEmail.trim() !== savedResetEmail;
 
 	async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
 		event.preventDefault();
@@ -30,7 +27,7 @@ export function ProfileForm({ initialName, initialResetEmail, initialForwardingE
 			const res = await authFetch("/api/settings/profile", {
 				method: "PATCH",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ name, resetEmail, forwardingEmail }),
+				body: JSON.stringify({ name, resetEmail }),
 			});
 			const data = (await res.json()) as ProfileFormResponse;
 
@@ -41,13 +38,10 @@ export function ProfileForm({ initialName, initialResetEmail, initialForwardingE
 
 			const nextName = data.user?.name ?? name.trim();
 			const nextResetEmail = data.user?.resetEmail ?? "";
-			const nextForwardingEmail = data.user?.forwardingEmail ?? "";
 			setName(nextName);
 			setResetEmail(nextResetEmail);
-			setForwardingEmail(nextForwardingEmail);
 			setSavedName(nextName);
 			setSavedResetEmail(nextResetEmail);
-			setSavedForwardingEmail(nextForwardingEmail);
 			setStatus("Saved");
 		} catch (err) {
 			setStatus(err instanceof Error ? err.message : "Failed to update account");
@@ -76,19 +70,6 @@ export function ProfileForm({ initialName, initialResetEmail, initialForwardingE
 					placeholder="recovery@example.com"
 				/>
 			</div>
-			{canForwardEmail && <div className="space-y-2">
-				<Label htmlFor="forwardingEmail">Forwarding email (optional)</Label>
-				<Input
-					id="forwardingEmail"
-					value={forwardingEmail}
-					onChange={(event) => setForwardingEmail(event.target.value)}
-					type="email"
-					placeholder="destination@example.com"
-				/>
-				<p className="text-xs leading-5 text-neutral-500">
-					Incoming mail will also be sent to this verified Cloudflare Email Routing destination.
-				</p>
-			</div>}
 			<div className="flex items-center gap-3">
 				<Button type="submit" disabled={loading || !hasChanges}>
 					{loading ? "Saving..." : "Save"}

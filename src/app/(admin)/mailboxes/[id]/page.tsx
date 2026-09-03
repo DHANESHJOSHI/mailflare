@@ -1,8 +1,8 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Save, Trash2, UserPlus } from "lucide-react";
-import { useParams } from "next/navigation";
+import { AtSign, Save, Trash2, UserPlus } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,11 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
+  createMailboxAlias,
+  deleteMailbox,
+  deleteMailboxAlias,
   fetchMailbox,
+  fetchMailboxAliases,
   fetchSharedInboxAccess,
   getMailboxAddress,
   grantSharedInboxAccess,
@@ -35,6 +39,8 @@ export default function MailboxSettingsPage() {
   const [displayName, setDisplayName] = useState("");
   const [useAllDomains, setUseAllDomains] = useState(true);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [aliasLocalPart, setAliasLocalPart] = useState("");
+  const [aliasDomainId, setAliasDomainId] = useState("");
 
   const mailbox = useQuery({
     queryKey: ["mailbox", mailboxId],
@@ -46,6 +52,7 @@ export default function MailboxSettingsPage() {
     if (mailbox.data) {
       setDisplayName(mailbox.data.displayName ?? "");
       setUseAllDomains(mailbox.data.useAllDomains);
+      setAliasDomainId((current) => current || mailbox.data.domainId);
     }
   }, [mailbox.data]);
 
@@ -55,6 +62,36 @@ export default function MailboxSettingsPage() {
       qc.setQueryData(["mailbox", mailboxId], updatedMailbox);
       qc.invalidateQueries({ queryKey: ["mailboxes"] });
     },
+  });
+
+  const router = useRouter();
+  const removeMailbox = useMutation({
+    mutationFn: () => deleteMailbox(mailboxId),
+    onSuccess: async () => {
+      await qc.invalidateQueries({ queryKey: ["mailboxes"] });
+      router.push("/mailboxes");
+    },
+  });
+
+  const aliases = useQuery({
+    queryKey: ["mailbox", mailboxId, "aliases"],
+    queryFn: () => fetchMailboxAliases(mailboxId),
+    enabled: !!mailboxId,
+  });
+  const addAlias = useMutation({
+    mutationFn: () =>
+      createMailboxAlias(mailboxId, {
+        domainId: aliasDomainId,
+        localPart: aliasLocalPart.trim(),
+      }),
+    onSuccess: async () => {
+      setAliasLocalPart("");
+      await qc.invalidateQueries({ queryKey: ["mailbox", mailboxId, "aliases"] });
+    },
+  });
+  const removeAlias = useMutation({
+    mutationFn: (aliasId: string) => deleteMailboxAlias(mailboxId, aliasId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["mailbox", mailboxId, "aliases"] }),
   });
 
   const sharedAccess = useQuery({
@@ -167,6 +204,95 @@ export default function MailboxSettingsPage() {
         </CardContent>
       </Card>
 
+      <Card className="rounded-3xl border-0 bg-white p-6">
+        <CardHeader className="py-0">
+          <CardTitle>Aliases</CardTitle>
+          <CardDescription>
+            Extra addresses that deliver to this mailbox. You can also send mail
+            from any alias.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-5">
+          {aliases.isLoading && <Skeleton className="h-12 w-full rounded-2xl" />}
+          {(aliases.data?.aliases ?? []).map((alias) => (
+            <div
+              key={alias.id}
+              className="flex items-center justify-between gap-3 rounded-2xl bg-neutral-50 px-4 py-3"
+            >
+              <div className="flex min-w-0 items-center gap-2">
+                <AtSign className="h-4 w-4 shrink-0 text-neutral-400" />
+                <p className="truncate no-font-mono text-sm font-medium text-neutral-900">
+                  {alias.localPart}@{alias.hostname}
+                </p>
+              </div>
+              <Button
+                type="button"
+                size="icon"
+                variant="ghost"
+                aria-label={`Remove ${alias.localPart}@${alias.hostname}`}
+                disabled={removeAlias.isPending}
+                onClick={() => removeAlias.mutate(alias.id)}
+              >
+                <Trash2 className="h-4 w-4 text-red-600" />
+              </Button>
+            </div>
+          ))}
+          {aliases.data && aliases.data.aliases.length === 0 && (
+            <p className="rounded-2xl bg-neutral-50 px-4 py-3 text-sm text-neutral-500">
+              No aliases yet.
+            </p>
+          )}
+          {aliases.isError && (
+            <p className="text-sm text-red-600">
+              {aliases.error instanceof Error
+                ? aliases.error.message
+                : "Failed to load aliases"}
+            </p>
+          )}
+          <div className="flex gap-2">
+            <Input
+              value={aliasLocalPart}
+              onChange={(event) => setAliasLocalPart(event.target.value)}
+              placeholder="alias"
+              className="min-w-0 flex-1"
+              disabled={addAlias.isPending}
+            />
+            <Select
+              value={aliasDomainId}
+              onChange={(event) => setAliasDomainId(event.target.value)}
+              className="h-10 min-w-0 flex-1 text-sm"
+              disabled={addAlias.isPending}
+            >
+              {(aliases.data?.availableDomains ?? []).map((domain) => (
+                <option key={domain.id} value={domain.id}>
+                  @{domain.hostname}
+                </option>
+              ))}
+            </Select>
+            <Button
+              type="button"
+              disabled={!aliasLocalPart.trim() || !aliasDomainId || addAlias.isPending}
+              onClick={() => addAlias.mutate()}
+            >
+              <AtSign className="h-4 w-4" />
+              {addAlias.isPending ? "Adding..." : "Add alias"}
+            </Button>
+          </div>
+          {addAlias.isError && (
+            <p className="text-sm text-red-600">
+              {addAlias.error instanceof Error ? addAlias.error.message : "Failed to add alias"}
+            </p>
+          )}
+          {removeAlias.isError && (
+            <p className="text-sm text-red-600">
+              {removeAlias.error instanceof Error
+                ? removeAlias.error.message
+                : "Failed to remove alias"}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {mailbox.data?.type === "shared" && (
         <Card className="rounded-3xl border-0 bg-white p-6">
           <CardHeader className="py-0">
@@ -247,6 +373,44 @@ export default function MailboxSettingsPage() {
           </CardContent>
         </Card>
       )}
+      <Card className="rounded-3xl border-0 bg-white p-6">
+        <CardHeader className="py-0">
+          <CardTitle className="text-red-700">Danger zone</CardTitle>
+          <CardDescription>
+            Deleting this mailbox removes its Cloudflare Email Routing rule, so
+            new mail sent to {address || "this address"} will no longer be
+            accepted. Messages already received are kept in the database but
+            will no longer appear in any inbox. This cannot be undone.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-5">
+          {removeMailbox.isError && (
+            <p className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {removeMailbox.error instanceof Error
+                ? removeMailbox.error.message
+                : "Failed to delete mailbox"}
+            </p>
+          )}
+          <Button
+            type="button"
+            variant="destructive"
+            disabled={!mailbox.data || removeMailbox.isPending}
+            onClick={() => {
+              if (
+                !window.confirm(
+                  `Delete ${address}? This removes its email routing rule and cannot be undone.`,
+                )
+              )
+                return;
+              removeMailbox.mutate();
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+            {removeMailbox.isPending ? "Deleting..." : "Delete mailbox"}
+          </Button>
+        </CardContent>
+      </Card>
+
 {/* 
       <Card className="rounded-3xl border-0 bg-white p-6">
         <CardHeader className="py-0">

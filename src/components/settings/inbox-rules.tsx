@@ -205,11 +205,11 @@ export function InboxRules() {
           </DialogHeader>
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
+              <div className="space-2">
                 <Label htmlFor="matchField">Field</Label>
                 <Select
                   id="matchField"
-                  className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
+                  className="h-10 w-full px-3 text-sm"
                   value={matchField}
                   onChange={(event) =>
                     setMatchField(
@@ -222,11 +222,11 @@ export function InboxRules() {
                   <option value="title">Title</option>
                 </Select>
               </div>
-              <div className="space-y-2">
+              <div className="space-2">
                 <Label htmlFor="matchOperator">Match</Label>
                 <Select
                   id="matchOperator"
-                  className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
+                  className="h-10 w-full px-3 text-sm"
                   value={matchOperator}
                   onChange={(event) =>
                     setMatchOperator(event.target.value as "contains" | "exact")
@@ -252,7 +252,7 @@ export function InboxRules() {
               <Label htmlFor="destination">Destination</Label>
               <Select
                 id="destination"
-                className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
+                className="h-10 w-full px-3 text-sm"
                 value={destination}
                 onChange={(event) => setDestination(event.target.value)}
               >
