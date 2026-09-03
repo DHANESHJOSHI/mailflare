@@ -7,7 +7,7 @@ export default function SettingsRulesPage() {
 			<div>
 				<h1 className="text-3xl font-medium text-neutral-900">Rules</h1>
 				<p className="mt-1 text-sm text-neutral-500">
-					Manage domain routing and mailbox filtering rules.
+					Rules for the selected inbox.
 				</p>
 			</div>
 			<div className="rounded-3xl bg-white p-6">
@@ -16,10 +16,10 @@ export default function SettingsRulesPage() {
 			<div className="rounded-3xl bg-white p-6">
 				<h2 className="text-2xl font-semibold text-neutral-900">Mailbox rules</h2>
 				<p className="mt-1 text-sm text-neutral-500">
-					Filter mail after it reaches the selected mailbox.
+					Applied after delivery.
 				</p>
 				<div className="mt-6">
-				<InboxRules />
+					<InboxRules />
 				</div>
 			</div>
 		</div>

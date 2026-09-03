@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Ban, Forward, Inbox, Pencil, Plus, Trash2 } from "lucide-react";
+import { Ban, Forward, Inbox, Info, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Tooltip } from "@/components/ui/tooltip";
 import { CardGridSkeleton } from "@/components/page-skeletons";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import type { DomainRule, DomainRuleInput } from "./types";
@@ -109,10 +110,15 @@ export function DomainRouting() {
 		<div className="space-y-6">
 			<div className="flex flex-wrap items-end justify-between gap-4">
 				<div>
-					<h2 className="text-2xl font-semibold">Domain routing</h2>
-					<p className="mt-1 text-sm text-neutral-500">
-						Catch-all, forwarding, and block rules applied to mail arriving on a domain.
-					</p>
+					<div className="flex items-center gap-2">
+						<h2 className="text-2xl font-semibold">Domain routing</h2>
+						<Tooltip label="Block, forward, or deliver mail arriving at this domain.">
+							<button type="button" aria-label="About domain routing" className="text-neutral-400 hover:text-neutral-700">
+								<Info className="h-4 w-4" />
+							</button>
+						</Tooltip>
+					</div>
+					<p className="mt-1 text-sm text-neutral-500">{hostname || "Select an inbox"}</p>
 				</div>
 				<div className="flex items-end gap-2">
 					<Button onClick={openCreate} disabled={!mailboxId || !canManage}>
@@ -120,24 +126,6 @@ export function DomainRouting() {
 					</Button>
 				</div>
 			</div>
-
-			<Card>
-				<CardContent className="pt-6 text-sm text-neutral-600">
-					<p className="font-medium text-neutral-900">How these rules are applied</p>
-					<ol className="mt-2 list-decimal space-y-1 pl-5">
-						<li>Block rules run first and can reject a message before any mailbox is matched.</li>
-						<li>A real mailbox on the domain always wins over a catch-all.</li>
-						<li>
-							Remaining catch-all and forwarding rules run only when no mailbox matched, highest
-							priority first.
-						</li>
-					</ol>
-					<p className="mt-2">
-						Forwarding destinations must be verified destination addresses in Cloudflare Email
-						Routing.
-					</p>
-				</CardContent>
-			</Card>
 
 			{isMailboxLoading || rules.isLoading ? (
 				<CardGridSkeleton />
@@ -180,12 +168,10 @@ export function DomainRouting() {
 
 			<Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
 				{/* The form grows when the action changes, so the dialog must scroll rather than overflow the viewport. */}
-				<DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto">
+				<DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto sm:max-w-[560px]">
 					<DialogHeader>
 						<DialogTitle>{editing ? "Edit rule" : "Add routing rule"}</DialogTitle>
-						<DialogDescription>
-							Rules run in descending priority order within their phase.
-						</DialogDescription>
+						<DialogDescription>Choose what happens to matching mail.</DialogDescription>
 					</DialogHeader>
 
 					<form
@@ -195,6 +181,7 @@ export function DomainRouting() {
 							save.mutate();
 						}}
 					>
+						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 						<div className="space-y-2">
 							<Label htmlFor="rule-name">Name</Label>
 							<Input
@@ -221,8 +208,9 @@ export function DomainRouting() {
 								))}
 							</Select>
 						</div>
+						</div>
 
-						<div className="grid grid-cols-2 gap-3">
+						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
 							<div className="space-y-2">
 								<Label htmlFor="rule-field">Match on</Label>
 								<Select
@@ -261,7 +249,12 @@ export function DomainRouting() {
 						</div>
 
 						<div className="space-y-2">
-							<Label htmlFor="rule-value">Value</Label>
+							<div className="flex items-center gap-2">
+								<Label htmlFor="rule-value">Match value</Label>
+								<Tooltip label="Use * to match every message.">
+									<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
+								</Tooltip>
+							</div>
 							<Input
 								id="rule-value"
 								required
@@ -269,12 +262,10 @@ export function DomainRouting() {
 								placeholder="* to match everything"
 								onChange={(e) => setForm({ ...form, matchValue: e.target.value })}
 							/>
-							<p className="text-xs text-neutral-500">
-								Use <code>*</code> for a catch-all that matches every message.
-							</p>
 						</div>
 
 						{form.action !== "reject" && (
+							<div className={form.action === "forward" ? "grid grid-cols-1 gap-3 sm:grid-cols-2" : "space-y-2"}>
 							<div className="space-y-2">
 								<Label htmlFor="rule-mailbox">
 									{form.action === "forward" ? "Mailbox for the kept copy" : "Destination mailbox"}
@@ -293,10 +284,7 @@ export function DomainRouting() {
 									))}
 								</Select>
 							</div>
-						)}
-
-						{form.action === "forward" && (
-							<>
+							{form.action === "forward" && (
 								<div className="space-y-2">
 									<Label htmlFor="rule-forward">Forward to</Label>
 									<Input
@@ -307,19 +295,25 @@ export function DomainRouting() {
 										onChange={(e) => setForm({ ...form, forwardTo: e.target.value })}
 									/>
 								</div>
-								<div className="flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2">
-									<div>
+							)}
+							</div>
+						)}
+
+						{form.action === "forward" && (
+							<div className="flex items-center justify-between rounded-lg border border-neutral-200 px-3 py-2">
+								<div>
+									<div className="flex items-center gap-2">
 										<p className="text-sm font-medium">Keep a copy</p>
-										<p className="text-xs text-neutral-500">
-											Also store the message in the selected mailbox.
-										</p>
+										<Tooltip label="Also store the message in the selected inbox.">
+											<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
+										</Tooltip>
 									</div>
-									<Switch
-										checked={form.keepCopy}
-										onCheckedChange={(keepCopy) => setForm({ ...form, keepCopy })}
-									/>
 								</div>
-							</>
+								<Switch
+									checked={form.keepCopy}
+									onCheckedChange={(keepCopy) => setForm({ ...form, keepCopy })}
+								/>
+							</div>
 						)}
 
 						{form.action === "reject" && (
@@ -334,8 +328,13 @@ export function DomainRouting() {
 							</div>
 						)}
 
-						<div className="space-y-2">
-							<Label htmlFor="rule-priority">Priority</Label>
+						<div className="space-y-2 sm:w-1/2">
+							<div className="flex items-center gap-2">
+								<Label htmlFor="rule-priority">Priority</Label>
+								<Tooltip label="Higher numbers run first.">
+									<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
+								</Tooltip>
+							</div>
 							<Input
 								id="rule-priority"
 								type="number"
@@ -344,7 +343,6 @@ export function DomainRouting() {
 								value={form.priority}
 								onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
 							/>
-							<p className="text-xs text-neutral-500">Higher numbers are evaluated first.</p>
 						</div>
 
 						{error && <p className="text-sm text-red-600">{error}</p>}
@@ -386,8 +384,12 @@ function RuleSection({
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>{title}</CardTitle>
-				<p className="text-sm text-neutral-500">{description}</p>
+				<div className="flex items-center gap-2">
+					<CardTitle>{title}</CardTitle>
+					<Tooltip label={description}>
+						<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
+					</Tooltip>
+				</div>
 			</CardHeader>
 			<CardContent className="space-y-2">
 				{rules.length === 0 ? (
