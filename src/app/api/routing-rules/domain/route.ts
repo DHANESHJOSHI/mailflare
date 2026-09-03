@@ -2,15 +2,13 @@ import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { routingRules } from "@/db/schema";
 import { requireSessionUser } from "@/lib/api/auth";
-import { assertAdmin } from "@/lib/auth/admin";
 import { getEnv } from "@/lib/cloudflare";
 import { newId } from "@/lib/ids";
 import { domainRoutingRuleSchema } from "@/lib/validators";
 import {
 	assertRuleMailbox,
-	getDomainOwnerId,
-	getOwnedDomain,
-	listDomainMailboxes,
+	getManagedDomainMailbox,
+	listManagedDomainMailboxes,
 	listDomainRules,
 	toRuleColumns,
 } from "@/lib/domains/routing-rules";
@@ -20,26 +18,21 @@ export async function GET(request: Request) {
 	const auth = await requireSessionUser(env, request);
 	if (auth.error) return auth.error;
 	const user = auth.user;
-	try {
-		assertAdmin(user);
-	} catch {
-		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-	}
-
-	const domainId = new URL(request.url).searchParams.get("domainId");
-	if (!domainId) {
-		return NextResponse.json({ error: "domainId is required" }, { status: 400 });
+	const searchParams = new URL(request.url).searchParams;
+	const domainId = searchParams.get("domainId");
+	const mailboxId = searchParams.get("mailboxId");
+	if (!domainId || !mailboxId) {
+		return NextResponse.json({ error: "domainId and mailboxId are required" }, { status: 400 });
 	}
 
 	const db = getDb(env);
-	const domain = await getOwnedDomain(db, getDomainOwnerId(user), domainId);
-	if (!domain) {
-		return NextResponse.json({ error: "Domain not found" }, { status: 404 });
+	if (!(await getManagedDomainMailbox(db, user, mailboxId, domainId))) {
+		return NextResponse.json({ error: "Mailbox access is required" }, { status: 403 });
 	}
 
 	return NextResponse.json({
 		rules: await listDomainRules(db, domainId),
-		mailboxes: await listDomainMailboxes(db, domainId),
+		mailboxes: await listManagedDomainMailboxes(db, user, domainId),
 	});
 }
 
@@ -48,32 +41,26 @@ export async function POST(request: Request) {
 	const auth = await requireSessionUser(env, request);
 	if (auth.error) return auth.error;
 	const user = auth.user;
-	try {
-		assertAdmin(user);
-	} catch {
-		return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-	}
-
 	const parsed = domainRoutingRuleSchema.safeParse(await request.json());
 	if (!parsed.success) {
 		return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 	}
 
 	const db = getDb(env);
-	const domain = await getOwnedDomain(db, getDomainOwnerId(user), parsed.data.domainId);
-	if (!domain) {
-		return NextResponse.json({ error: "Domain not found" }, { status: 404 });
+	const mailboxId = new URL(request.url).searchParams.get("mailboxId");
+	if (!mailboxId || !(await getManagedDomainMailbox(db, user, mailboxId, parsed.data.domainId))) {
+		return NextResponse.json({ error: "Mailbox access is required" }, { status: 403 });
 	}
 
-	if (parsed.data.mailboxId && !(await assertRuleMailbox(db, parsed.data.mailboxId, domain.id))) {
-		return NextResponse.json({ error: "Mailbox not found on this domain" }, { status: 404 });
+	if (parsed.data.mailboxId && !(await assertRuleMailbox(db, user, parsed.data.mailboxId, parsed.data.domainId))) {
+		return NextResponse.json({ error: "Mailbox access is required for the destination" }, { status: 403 });
 	}
 
 	const id = newId("rule");
 	await db.insert(routingRules).values({
 		id,
 		userId: user.id,
-		domainId: domain.id,
+		domainId: parsed.data.domainId,
 		...toRuleColumns(parsed.data),
 	});
 

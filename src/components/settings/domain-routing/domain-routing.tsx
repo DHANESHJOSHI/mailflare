@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Ban, Forward, Inbox, Pencil, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { CardGridSkeleton } from "@/components/page-skeletons";
+import { useSelectedMailbox } from "@/components/mailbox-provider";
 import type { DomainRule, DomainRuleInput } from "./types";
 import {
 	ACTION_LABELS,
@@ -28,7 +29,6 @@ import {
 	describeRule,
 	emptyRuleInput,
 	fetchDomainRules,
-	fetchRoutingDomains,
 	formatLastMatched,
 	ruleToInput,
 	updateDomainRule,
@@ -42,53 +42,50 @@ const ACTION_ICONS = {
 
 export function DomainRouting() {
 	const qc = useQueryClient();
-	const [selectedDomainId, setSelectedDomainId] = useState("");
+	const { selectedMailbox, isLoading: isMailboxLoading } = useSelectedMailbox();
 	const [dialogOpen, setDialogOpen] = useState(false);
 	const [editing, setEditing] = useState<DomainRule | null>(null);
 	const [form, setForm] = useState<DomainRuleInput>(emptyRuleInput(""));
 	const [error, setError] = useState<string | null>(null);
 
-	const domains = useQuery({ queryKey: ["routing-domains"], queryFn: fetchRoutingDomains });
-
-	// Derive the active domain rather than syncing it in an effect: until the operator picks one,
-	// it is simply the first domain that loaded.
-	const domainId = selectedDomainId || (domains.data?.[0]?.id ?? "");
+	const domainId = selectedMailbox?.domainId ?? "";
+	const mailboxId = selectedMailbox?.id ?? "";
+	const canManage = selectedMailbox?.permission === "full_access";
 
 	const rules = useQuery({
-		queryKey: ["domain-rules", domainId],
-		enabled: !!domainId,
-		queryFn: () => fetchDomainRules(domainId),
+		queryKey: ["domain-rules", domainId, mailboxId],
+		enabled: !!domainId && !!mailboxId && canManage,
+		queryFn: () => fetchDomainRules(domainId, mailboxId),
 	});
 
-	const hostname = useMemo(
-		() => domains.data?.find((d) => d.id === domainId)?.hostname ?? "",
-		[domains.data, domainId],
-	);
+	const hostname = selectedMailbox?.hostname ?? "";
 	const mailboxes = rules.data?.mailboxes ?? [];
 
 	const save = useMutation({
 		mutationFn: () => {
 			const payload: DomainRuleInput = { ...form, domainId };
-			return editing ? updateDomainRule(editing.id, payload) : createDomainRule(payload);
+			return editing
+				? updateDomainRule(editing.id, payload, mailboxId)
+				: createDomainRule(payload, mailboxId);
 		},
 		onSuccess: () => {
 			setDialogOpen(false);
 			setEditing(null);
 			setError(null);
-			qc.invalidateQueries({ queryKey: ["domain-rules", domainId] });
+			qc.invalidateQueries({ queryKey: ["domain-rules", domainId, mailboxId] });
 		},
 		onError: (e: Error) => setError(e.message),
 	});
 
 	const remove = useMutation({
-		mutationFn: deleteDomainRule,
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-rules", domainId] }),
+		mutationFn: (id: string) => deleteDomainRule(id, mailboxId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-rules", domainId, mailboxId] }),
 	});
 
 	const toggle = useMutation({
 		mutationFn: (rule: DomainRule) =>
-			updateDomainRule(rule.id, { ...ruleToInput(rule), enabled: !rule.enabled }),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-rules", domainId] }),
+			updateDomainRule(rule.id, { ...ruleToInput(rule), enabled: !rule.enabled }, mailboxId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-rules", domainId, mailboxId] }),
 	});
 
 	function openCreate() {
@@ -118,22 +115,7 @@ export function DomainRouting() {
 					</p>
 				</div>
 				<div className="flex items-end gap-2">
-					<div className="space-y-1">
-						<Label htmlFor="routing-domain">Domain</Label>
-						<Select
-							id="routing-domain"
-							value={domainId}
-							onChange={(e) => setSelectedDomainId(e.target.value)}
-							className="h-9"
-						>
-							{(domains.data ?? []).map((domain) => (
-								<option key={domain.id} value={domain.id}>
-									{domain.hostname}
-								</option>
-							))}
-						</Select>
-					</div>
-					<Button onClick={openCreate} disabled={!domainId}>
+					<Button onClick={openCreate} disabled={!mailboxId || !canManage}>
 						<Plus className="h-4 w-4" /> Add rule
 					</Button>
 				</div>
@@ -157,12 +139,18 @@ export function DomainRouting() {
 				</CardContent>
 			</Card>
 
-			{domains.isLoading || rules.isLoading ? (
+			{isMailboxLoading || rules.isLoading ? (
 				<CardGridSkeleton />
-			) : !domains.data?.length ? (
+			) : !mailboxId ? (
 				<Card>
 					<CardContent className="pt-6 text-sm text-neutral-500">
-						Add a domain before creating routing rules.
+						Select an inbox before creating routing rules.
+					</CardContent>
+				</Card>
+			) : !canManage ? (
+				<Card>
+					<CardContent className="pt-6 text-sm text-neutral-500">
+						Full access to the selected inbox is required to manage domain routing.
 					</CardContent>
 				</Card>
 			) : (

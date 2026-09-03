@@ -1,7 +1,8 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { domains, mailboxes, routingRules } from "@/db/schema";
+import { routingRules } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth/types";
+import { getMailboxAccessLevel, listAccessibleMailboxes } from "@/lib/mailboxes/access";
 
 export type DomainRuleInput = {
 	domainId: string;
@@ -18,23 +19,6 @@ export type DomainRuleInput = {
 	priority: number;
 };
 
-/**
- * Domains are owned by the admin who added them; team members with mailbox management
- * rights act on their creator's domains, mirroring the domains API.
- */
-export function getDomainOwnerId(user: Pick<SessionUser, "id" | "canManageMailboxes" | "createdByUserId">) {
-	return user.canManageMailboxes && user.createdByUserId ? user.createdByUserId : user.id;
-}
-
-export async function getOwnedDomain(db: AppDatabase, ownerId: string, domainId: string) {
-	const [domain] = await db
-		.select()
-		.from(domains)
-		.where(and(eq(domains.id, domainId), eq(domains.userId, ownerId)))
-		.limit(1);
-	return domain ?? null;
-}
-
 export async function listDomainRules(db: AppDatabase, domainId: string) {
 	return db
 		.select()
@@ -43,31 +27,37 @@ export async function listDomainRules(db: AppDatabase, domainId: string) {
 		.orderBy(desc(routingRules.priority), asc(routingRules.createdAt));
 }
 
-export async function listDomainMailboxes(db: AppDatabase, domainId: string) {
-	return db
-		.select({
-			id: mailboxes.id,
-			localPart: mailboxes.localPart,
-			displayName: mailboxes.displayName,
-			disabled: mailboxes.disabled,
-		})
-		.from(mailboxes)
-		.where(eq(mailboxes.domainId, domainId))
-		.orderBy(asc(mailboxes.localPart));
+export async function getManagedDomainMailbox(
+	db: AppDatabase,
+	user: Pick<SessionUser, "id" | "email" | "role">,
+	mailboxId: string,
+	domainId: string,
+) {
+	const access = await getMailboxAccessLevel(db, user, mailboxId);
+	if (!access?.canManage || access.mailbox.domainId !== domainId) return null;
+	return access.mailbox;
 }
 
-/** A destination mailbox must belong to the same domain as the rule. */
+export async function listManagedDomainMailboxes(
+	db: AppDatabase,
+	user: Pick<SessionUser, "id" | "email" | "role">,
+	domainId: string,
+) {
+	const accessible = await listAccessibleMailboxes(db, user);
+	return accessible
+		.filter((mailbox) => mailbox.domainId === domainId && mailbox.permission === "full_access")
+		.map(({ id, localPart, displayName, disabled }) => ({ id, localPart, displayName, disabled }))
+		.sort((a, b) => a.localPart.localeCompare(b.localPart));
+}
+
+/** A rule can deliver only to an inbox that the caller can fully manage. */
 export async function assertRuleMailbox(
 	db: AppDatabase,
+	user: Pick<SessionUser, "id" | "email" | "role">,
 	mailboxId: string,
 	domainId: string,
 ): Promise<boolean> {
-	const [mailbox] = await db
-		.select({ id: mailboxes.id })
-		.from(mailboxes)
-		.where(and(eq(mailboxes.id, mailboxId), eq(mailboxes.domainId, domainId)))
-		.limit(1);
-	return !!mailbox;
+	return !!(await getManagedDomainMailbox(db, user, mailboxId, domainId));
 }
 
 export function toRuleColumns(input: DomainRuleInput) {

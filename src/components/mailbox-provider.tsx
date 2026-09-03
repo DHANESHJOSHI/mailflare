@@ -19,6 +19,7 @@ import {
 
 export type MailboxOption = {
 	id: string;
+	domainId: string;
 	localPart: string;
 	hostname: string;
 	displayName: string | null;

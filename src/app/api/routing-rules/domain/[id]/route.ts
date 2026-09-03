@@ -2,14 +2,12 @@ import { and, eq } from "drizzle-orm";
 import { NextResponse } from "next/server";
 import { getDb } from "@/db";
 import { routingRules } from "@/db/schema";
-import { assertAdmin } from "@/lib/auth/admin";
 import { requireSessionUser } from "@/lib/api/auth";
 import { getEnv } from "@/lib/cloudflare";
 import { domainRoutingRuleSchema } from "@/lib/validators";
 import {
 	assertRuleMailbox,
-	getDomainOwnerId,
-	getOwnedDomain,
+	getManagedDomainMailbox,
 	toRuleColumns,
 } from "@/lib/domains/routing-rules";
 import type { DomainRoutingRuleRouteParams } from "./types";
@@ -20,12 +18,6 @@ async function loadRule(request: Request, id: string) {
 	const auth = await requireSessionUser(env, request);
 	if (auth.error) return { error: auth.error } as const;
 	const user = auth.user;
-	try {
-		assertAdmin(user);
-	} catch {
-		return { error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) } as const;
-	}
-
 	const db = getDb(env);
 	const [rule] = await db
 		.select()
@@ -36,12 +28,12 @@ async function loadRule(request: Request, id: string) {
 		return { error: NextResponse.json({ error: "Rule not found" }, { status: 404 }) } as const;
 	}
 
-	const domain = await getOwnedDomain(db, getDomainOwnerId(user), rule.domainId);
-	if (!domain) {
-		return { error: NextResponse.json({ error: "Rule not found" }, { status: 404 }) } as const;
+	const mailboxId = new URL(request.url).searchParams.get("mailboxId");
+	if (!mailboxId || !(await getManagedDomainMailbox(db, user, mailboxId, rule.domainId))) {
+		return { error: NextResponse.json({ error: "Mailbox access is required" }, { status: 403 }) } as const;
 	}
 
-	return { env, db, user, rule, domain, error: null } as const;
+	return { env, db, user, rule, error: null } as const;
 }
 
 export async function PATCH(request: Request, { params }: DomainRoutingRuleRouteParams) {
@@ -56,8 +48,8 @@ export async function PATCH(request: Request, { params }: DomainRoutingRuleRoute
 		return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 	}
 
-	if (parsed.data.mailboxId && !(await assertRuleMailbox(loaded.db, parsed.data.mailboxId, loaded.domain.id))) {
-		return NextResponse.json({ error: "Mailbox not found on this domain" }, { status: 404 });
+	if (parsed.data.mailboxId && !(await assertRuleMailbox(loaded.db, loaded.user, parsed.data.mailboxId, loaded.rule.domainId))) {
+		return NextResponse.json({ error: "Mailbox access is required for the destination" }, { status: 403 });
 	}
 
 	await loaded.db.update(routingRules).set(toRuleColumns(parsed.data)).where(eq(routingRules.id, id));
