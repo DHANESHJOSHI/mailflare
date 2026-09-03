@@ -3,7 +3,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -14,19 +13,11 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import {
-  Check,
-  X,
-  AlertTriangle,
-  ArrowRight,
-  Globe2,
-  Plus,
-  Trash2,
-} from "lucide-react";
+import { Plus } from "lucide-react";
 import { authFetch } from "@/lib/auth/client";
-import type { DnsRecord, DnsStatusSummary, Domain } from "./types";
+import type { DnsStatusSummary, Domain, DomainDnsView } from "./types";
 import DomainItemCard from "./DomainItemCard";
+import DomainDnsDetails from "./DomainDnsDetails";
 import { CardGridSkeleton } from "@/components/page-skeletons";
 
 export default function DomainsPage() {
@@ -35,7 +26,7 @@ export default function DomainsPage() {
   const [createOpen, setCreateOpen] = useState(false);
   const [dnsView, setDnsView] = useState<{
     domain: Domain;
-    dns: unknown;
+    dns: DomainDnsView;
   } | null>(null);
 
   const { data, isLoading } = useQuery({
@@ -81,7 +72,7 @@ export default function DomainsPage() {
 
   const loadDns = async (id: string) => {
     const res = await authFetch(`/api/domains/${id}/dns`);
-    const json = (await res.json()) as { domain: Domain; dns: unknown };
+    const json = (await res.json()) as { domain: Domain; dns: DomainDnsView };
     if (res.ok) setDnsView(json);
   };
 
@@ -121,9 +112,24 @@ export default function DomainsPage() {
                 />
               </div>
               {create.isError && (
-                <p className="text-sm text-red-600">
-                  {(create.error as Error).message}
-                </p>
+                <div className="space-y-3 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">
+                  <p>{(create.error as Error).message}</p>
+                  <div className="space-y-2">
+                    <p className="font-medium">
+                      Check that your Cloudflare API token has these permissions:
+                    </p>
+                    <ul className="list-disc space-y-1 pl-5">
+                      <li>
+                        All accounts — Email Sending:Edit, DNS Settings:Edit,
+                        Email Routing Addresses:Edit
+                      </li>
+                      <li>
+                        All zones — DNS Settings:Edit, Email Routing Rules:Edit,
+                        Zone Settings:Edit, DNS:Edit
+                      </li>
+                    </ul>
+                  </div>
+                </div>
               )}
               <Button
                 onClick={() => create.mutate()}
@@ -163,37 +169,7 @@ export default function DomainsPage() {
         </div>
       </section>
       {dnsView && (
-        <Card className="rounded-3xl border-0 bg-white p-6">
-          <CardHeader className="py-0">
-            <CardTitle>DNS — {dnsView.domain.hostname}</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-5 text-xs no-font-mono">
-            <div>
-              <p className="font-sans font-medium text-sm mb-2">
-                Email Routing
-              </p>
-              <pre className="overflow-auto bg-neutral-50 dark:bg-neutral-900 p-3 rounded-md">
-                {JSON.stringify(
-                  (dnsView.dns as { routing: unknown }).routing,
-                  null,
-                  2,
-                )}
-              </pre>
-            </div>
-            <div>
-              <p className="font-sans font-medium text-sm mb-2">
-                Email Sending
-              </p>
-              <pre className="overflow-auto bg-neutral-50 dark:bg-neutral-900 p-3 rounded-md">
-                {JSON.stringify(
-                  (dnsView.dns as { sending: DnsRecord[] }).sending,
-                  null,
-                  2,
-                )}
-              </pre>
-            </div>
-          </CardContent>
-        </Card>
+        <DomainDnsDetails domain={dnsView.domain} dns={dnsView.dns} />
       )}
     </div>
   );

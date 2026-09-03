@@ -18,3 +18,17 @@ export type DnsStatusSummary = {
 	routing: { configured: boolean; missing: string[] };
 	sending: { configured: boolean; records: string[] };
 };
+
+export type DomainDnsView = {
+	routing: {
+		records: DnsRecord[];
+		missing: DnsRecord[];
+		status?: string;
+	};
+	sending: DnsRecord[];
+};
+
+export type DomainDnsDetailsProps = {
+	domain: Domain;
+	dns: DomainDnsView;
+};
