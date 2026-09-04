@@ -1,6 +1,6 @@
 import { and, asc, desc, eq } from "drizzle-orm";
 import type { AppDatabase } from "@/db";
-import { routingRules } from "@/db/schema";
+import { domains, mailboxes, routingRules } from "@/db/schema";
 import type { SessionUser } from "@/lib/auth/types";
 import { getMailboxAccessLevel, listAccessibleMailboxes } from "@/lib/mailboxes/access";
 
@@ -48,6 +48,43 @@ export async function listManagedDomainMailboxes(
 		.filter((mailbox) => mailbox.domainId === domainId && mailbox.permission === "full_access")
 		.map(({ id, localPart, displayName, disabled }) => ({ id, localPart, displayName, disabled }))
 		.sort((a, b) => a.localPart.localeCompare(b.localPart));
+}
+
+export async function getAdminDomain(
+	db: AppDatabase,
+	user: Pick<SessionUser, "id" | "role" | "canManageMailboxes" | "createdByUserId">,
+	domainId: string,
+) {
+	if (user.role !== "admin") return null;
+	const ownerId = user.canManageMailboxes && user.createdByUserId ? user.createdByUserId : user.id;
+	const [domain] = await db
+		.select()
+		.from(domains)
+		.where(and(eq(domains.id, domainId), eq(domains.userId, ownerId)))
+		.limit(1);
+	return domain ?? null;
+}
+
+export async function listAdminDomainMailboxes(db: AppDatabase, domainId: string) {
+	return db
+		.select({
+			id: mailboxes.id,
+			localPart: mailboxes.localPart,
+			displayName: mailboxes.displayName,
+			disabled: mailboxes.disabled,
+		})
+		.from(mailboxes)
+		.where(eq(mailboxes.domainId, domainId))
+		.orderBy(asc(mailboxes.localPart));
+}
+
+export async function assertAdminRuleMailbox(db: AppDatabase, mailboxId: string, domainId: string): Promise<boolean> {
+	const [mailbox] = await db
+		.select({ id: mailboxes.id })
+		.from(mailboxes)
+		.where(and(eq(mailboxes.id, mailboxId), eq(mailboxes.domainId, domainId)))
+		.limit(1);
+	return !!mailbox;
 }
 
 /** A rule can deliver only to an inbox that the caller can fully manage. */

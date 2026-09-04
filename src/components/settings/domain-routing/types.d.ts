@@ -41,3 +41,10 @@ export type DomainRuleInput = {
 	rejectReason?: string | null;
 	priority: number;
 };
+
+export type DomainRoutingProps = {
+	domain?: {
+		id: string;
+		hostname: string;
+	};
+};

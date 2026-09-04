@@ -20,7 +20,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tooltip } from "@/components/ui/tooltip";
 import { CardGridSkeleton } from "@/components/page-skeletons";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
-import type { DomainRule, DomainRuleInput } from "./types";
+import type { DomainRoutingProps, DomainRule, DomainRuleInput } from "./types";
 import {
 	ACTION_LABELS,
 	MATCH_FIELD_LABELS,
@@ -41,7 +41,7 @@ const ACTION_ICONS = {
 	reject: Ban,
 } as const;
 
-export function DomainRouting() {
+export function DomainRouting({ domain }: DomainRoutingProps = {}) {
 	const qc = useQueryClient();
 	const { selectedMailbox, isLoading: isMailboxLoading } = useSelectedMailbox();
 	const [dialogOpen, setDialogOpen] = useState(false);
@@ -49,44 +49,46 @@ export function DomainRouting() {
 	const [form, setForm] = useState<DomainRuleInput>(emptyRuleInput(""));
 	const [error, setError] = useState<string | null>(null);
 
-	const domainId = selectedMailbox?.domainId ?? "";
+	const domainId = domain?.id ?? selectedMailbox?.domainId ?? "";
 	const mailboxId = selectedMailbox?.id ?? "";
-	const canManage = selectedMailbox?.permission === "full_access";
+	const mailboxAccessId = domain ? undefined : mailboxId;
+	const canManage = !!domain || selectedMailbox?.permission === "full_access";
+	const rulesQueryKey = ["domain-rules", domainId, mailboxAccessId ?? "admin"] as const;
 
 	const rules = useQuery({
-		queryKey: ["domain-rules", domainId, mailboxId],
-		enabled: !!domainId && !!mailboxId && canManage,
-		queryFn: () => fetchDomainRules(domainId, mailboxId),
+		queryKey: rulesQueryKey,
+		enabled: !!domainId && (!!domain || !!mailboxId) && canManage,
+		queryFn: () => fetchDomainRules(domainId, mailboxAccessId),
 	});
 
-	const hostname = selectedMailbox?.hostname ?? "";
+	const hostname = domain?.hostname ?? selectedMailbox?.hostname ?? "";
 	const mailboxes = rules.data?.mailboxes ?? [];
 
 	const save = useMutation({
 		mutationFn: () => {
 			const payload: DomainRuleInput = { ...form, domainId };
 			return editing
-				? updateDomainRule(editing.id, payload, mailboxId)
-				: createDomainRule(payload, mailboxId);
+				? updateDomainRule(editing.id, payload, mailboxAccessId)
+				: createDomainRule(payload, mailboxAccessId);
 		},
 		onSuccess: () => {
 			setDialogOpen(false);
 			setEditing(null);
 			setError(null);
-			qc.invalidateQueries({ queryKey: ["domain-rules", domainId, mailboxId] });
+			qc.invalidateQueries({ queryKey: rulesQueryKey });
 		},
 		onError: (e: Error) => setError(e.message),
 	});
 
 	const remove = useMutation({
-		mutationFn: (id: string) => deleteDomainRule(id, mailboxId),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-rules", domainId, mailboxId] }),
+		mutationFn: (id: string) => deleteDomainRule(id, mailboxAccessId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: rulesQueryKey }),
 	});
 
 	const toggle = useMutation({
 		mutationFn: (rule: DomainRule) =>
-			updateDomainRule(rule.id, { ...ruleToInput(rule), enabled: !rule.enabled }, mailboxId),
-		onSuccess: () => qc.invalidateQueries({ queryKey: ["domain-rules", domainId, mailboxId] }),
+			updateDomainRule(rule.id, { ...ruleToInput(rule), enabled: !rule.enabled }, mailboxAccessId),
+		onSuccess: () => qc.invalidateQueries({ queryKey: rulesQueryKey }),
 	});
 
 	function openCreate() {
@@ -121,15 +123,15 @@ export function DomainRouting() {
 					<p className="mt-1 text-sm text-neutral-500">Rules for {hostname || "Select an inbox"}</p>
 				</div>
 				<div className="flex items-end gap-2">
-					<Button onClick={openCreate} disabled={!mailboxId || !canManage}>
+					<Button onClick={openCreate} disabled={!domainId || (!domain && !mailboxId) || !canManage}>
 						<Plus className="h-4 w-4" /> Add route
 					</Button>
 				</div>
 			</div>
 
-			{isMailboxLoading || rules.isLoading ? (
+			{(!domain && isMailboxLoading) || rules.isLoading ? (
 				<CardGridSkeleton />
-			) : !mailboxId ? (
+			) : !domain && !mailboxId ? (
 				<Card>
 					<CardContent className="pt-6 text-sm text-neutral-500">
 						Select an inbox before creating routing rules.

@@ -7,6 +7,8 @@ import { getEnv } from "@/lib/cloudflare";
 import { domainRoutingRuleSchema } from "@/lib/validators";
 import {
 	assertRuleMailbox,
+	assertAdminRuleMailbox,
+	getAdminDomain,
 	getManagedDomainMailbox,
 	toRuleColumns,
 } from "@/lib/domains/routing-rules";
@@ -29,11 +31,12 @@ async function loadRule(request: Request, id: string) {
 	}
 
 	const mailboxId = new URL(request.url).searchParams.get("mailboxId");
-	if (!mailboxId || !(await getManagedDomainMailbox(db, user, mailboxId, rule.domainId))) {
-		return { error: NextResponse.json({ error: "Mailbox access is required" }, { status: 403 }) } as const;
+	const adminDomain = !mailboxId ? await getAdminDomain(db, user, rule.domainId) : null;
+	if (!adminDomain && (!mailboxId || !(await getManagedDomainMailbox(db, user, mailboxId, rule.domainId)))) {
+		return { error: NextResponse.json({ error: "Domain or mailbox access is required" }, { status: 403 }) } as const;
 	}
 
-	return { env, db, user, rule, error: null } as const;
+	return { env, db, user, rule, adminDomain, error: null } as const;
 }
 
 export async function PATCH(request: Request, { params }: DomainRoutingRuleRouteParams) {
@@ -48,7 +51,12 @@ export async function PATCH(request: Request, { params }: DomainRoutingRuleRoute
 		return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
 	}
 
-	if (parsed.data.mailboxId && !(await assertRuleMailbox(loaded.db, loaded.user, parsed.data.mailboxId, loaded.rule.domainId))) {
+	const destinationAllowed = parsed.data.mailboxId
+		? loaded.adminDomain
+			? await assertAdminRuleMailbox(loaded.db, parsed.data.mailboxId, loaded.rule.domainId)
+			: await assertRuleMailbox(loaded.db, loaded.user, parsed.data.mailboxId, loaded.rule.domainId)
+		: true;
+	if (!destinationAllowed) {
 		return NextResponse.json({ error: "Mailbox access is required for the destination" }, { status: 403 });
 	}
 
