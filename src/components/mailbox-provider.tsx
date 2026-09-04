@@ -9,6 +9,7 @@ import {
 } from "react";
 import type { ReactNode } from "react";
 import {
+	clearMailboxesCache,
 	fetchMailboxOptions,
 	SELECTED_MAILBOX_STORAGE_KEY,
 } from "./mailbox-provider-utils";
@@ -16,6 +17,8 @@ import {
 	AUTH_SESSION_CHANGED_EVENT,
 	getClientSessionToken,
 } from "@/lib/auth/client";
+import { PROFILE_NAME_CHANGED_EVENT } from "@/lib/profile/name-client";
+import type { ProfileNameChangedDetail } from "@/lib/profile/types";
 
 export type MailboxOption = {
 	id: string;
@@ -97,6 +100,22 @@ export function MailboxProvider({ children }: { children: ReactNode }) {
 
 		window.addEventListener(AUTH_SESSION_CHANGED_EVENT, resetMailboxState);
 		return () => window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, resetMailboxState);
+	}, []);
+
+	useEffect(() => {
+		function updatePersonalMailboxNames(event: Event) {
+			const { name } = (event as CustomEvent<ProfileNameChangedDetail>).detail;
+			clearMailboxesCache();
+			setMailboxes((items) => items.map((mailbox) => (
+				mailbox.type === "personal" ? { ...mailbox, displayName: name } : mailbox
+			)));
+			setSelectedMailboxState((mailbox) => (
+				mailbox?.type === "personal" ? { ...mailbox, displayName: name } : mailbox
+			));
+		}
+
+		window.addEventListener(PROFILE_NAME_CHANGED_EVENT, updatePersonalMailboxNames);
+		return () => window.removeEventListener(PROFILE_NAME_CHANGED_EVENT, updatePersonalMailboxNames);
 	}, []);
 
 	const setSelectedMailbox = useCallback((mb: MailboxOption | null) => {

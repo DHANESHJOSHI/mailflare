@@ -12,7 +12,8 @@ import {
 	PROFILE_AVATAR_CHANGED_EVENT,
 	getProfileAvatarUrl,
 } from "@/lib/profile/avatar-client";
-import type { ProfileAvatarChangedDetail } from "@/lib/profile/types";
+import { PROFILE_NAME_CHANGED_EVENT } from "@/lib/profile/name-client";
+import type { ProfileAvatarChangedDetail, ProfileNameChangedDetail } from "@/lib/profile/types";
 import { MAILBOX_AVATAR_CHANGED_EVENT } from "@/lib/mailboxes/avatar-client";
 import type { MailboxAvatarChangedDetail } from "@/lib/mailboxes/avatar-client-types";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -145,6 +146,16 @@ export function MailboxSelector() {
 
 		window.addEventListener(PROFILE_AVATAR_CHANGED_EVENT, onAvatarChanged);
 		return () => window.removeEventListener(PROFILE_AVATAR_CHANGED_EVENT, onAvatarChanged);
+	}, []);
+
+	useEffect(() => {
+		function onNameChanged(event: Event) {
+			const { name } = (event as CustomEvent<ProfileNameChangedDetail>).detail;
+			setUser((current) => current ? { ...current, name } : current);
+		}
+
+		window.addEventListener(PROFILE_NAME_CHANGED_EVENT, onNameChanged);
+		return () => window.removeEventListener(PROFILE_NAME_CHANGED_EVENT, onNameChanged);
 	}, []);
 
 	useEffect(() => {

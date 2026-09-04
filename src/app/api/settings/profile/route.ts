@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { ZodError } from "zod";
 import { getEnv } from "@/lib/cloudflare";
 import { getDb } from "@/db";
-import { users } from "@/db/schema";
+import { mailboxes, users } from "@/db/schema";
 import { requireUser } from "@/lib/auth/cookies";
 import { getLicenseEntitlements } from "@/lib/licenses/service";
 import type { UpdateProfileInput } from "./types";
@@ -36,6 +36,10 @@ export async function PATCH(request: Request) {
 			forwardingEmail,
 		})
 		.where(eq(users.id, user.id));
+	await db
+		.update(mailboxes)
+		.set({ displayName: parsed.name })
+		.where(and(eq(mailboxes.userId, user.id), eq(mailboxes.type, "personal")));
 
 	return NextResponse.json({
 		user: {

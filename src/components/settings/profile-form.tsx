@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authFetch } from "@/lib/auth/client";
+import { dispatchProfileNameChanged } from "@/lib/profile/name-client";
 import { ProfileAvatarForm } from "./profile-avatar-form";
 import type { ProfileFormProps, ProfileFormResponse } from "./types";
 
@@ -45,6 +46,7 @@ export function ProfileForm({
       setResetEmail(savedResetEmail);
       setSavedName(savedName);
       setSavedResetEmail(savedResetEmail);
+      dispatchProfileNameChanged(savedName);
     } catch (error) {
       throw error instanceof Error
         ? error
