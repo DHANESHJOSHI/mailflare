@@ -29,7 +29,6 @@ const sections = [
     links: [
       { href: "/mailboxes", label: "Mailboxes", icon: Mail },
       { href: "/domains", label: "Domains", icon: Globe2 },
-      { href: "/routing", label: "Routing", icon: Route },
       { href: "/webhooks", label: "Webhooks", icon: Webhook },
     ],
   },

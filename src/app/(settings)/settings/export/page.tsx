@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Download } from "lucide-react";
 import { useSelectedMailbox } from "@/components/mailbox-provider";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import type { ExportState } from "./types";
 import { exportMailbox } from "./utils";
 
@@ -26,21 +25,22 @@ export default function SettingsExportPage() {
 
 	return (
 		<div className="space-y-6">
-			<div>
+			{/* <div>
 				<h1 className="text-3xl font-medium text-neutral-900">Export</h1>
 				<p className="mt-1 text-sm text-neutral-500">
 					Download mail from the currently selected mailbox.
 				</p>
-			</div>
+			</div> */}
 
-			<Card className="rounded-3xl border-0 bg-white p-6">
-				<CardHeader className="py-0">
-					<CardDescription>
+			<section className="space-y-4">
+				<div>
+					<h2 className="text-xl font-semibold text-neutral-900">Export mailbox</h2>
+					<p className="mt-1 text-sm text-neutral-500">
 						Download message headers and bodies from the selected mailbox as an .mbox file.
 						Attachments are not included in this export.
-					</CardDescription>
-				</CardHeader>
-				<CardContent className="space-y-3 pt-5">
+					</p>
+				</div>
+				<div className="space-y-3 rounded-3xl bg-white p-6">
 					<Button type="button" variant="outline" disabled={!selectedMailbox || exportState.loading} onClick={onExport}>
 						{exportState.loading ? "Preparing..." : "Download .mbox"}
 					</Button>
@@ -49,8 +49,8 @@ export default function SettingsExportPage() {
 							{exportState.error}
 						</p>
 					)}
-				</CardContent>
-			</Card>
+				</div>
+			</section>
 		</div>
 	);
 }

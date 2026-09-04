@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { RoutingRuleSelect } from "./routing-rule-select";
 import { Switch } from "@/components/ui/switch";
 import { Tooltip } from "@/components/ui/tooltip";
 import { CardGridSkeleton } from "@/components/page-skeletons";
@@ -118,11 +118,11 @@ export function DomainRouting() {
 							</button>
 						</Tooltip>
 					</div>
-					<p className="mt-1 text-sm text-neutral-500">{hostname || "Select an inbox"}</p>
+					<p className="mt-1 text-sm text-neutral-500">Rules for {hostname || "Select an inbox"}</p>
 				</div>
 				<div className="flex items-end gap-2">
 					<Button onClick={openCreate} disabled={!mailboxId || !canManage}>
-						<Plus className="h-4 w-4" /> Add rule
+						<Plus className="h-4 w-4" /> Add route
 					</Button>
 				</div>
 			</div>
@@ -142,8 +142,9 @@ export function DomainRouting() {
 					</CardContent>
 				</Card>
 			) : (
-				<div className="space-y-6">
+				<div className="space-y-1 overflow-hidden rounded-3xl">
 					<RuleSection
+						className="rounded-b-lg rounded-t-3xl"
 						title="Block rules"
 						description="Evaluated before delivery. Matching mail is rejected at the edge."
 						rules={blockRules}
@@ -154,6 +155,7 @@ export function DomainRouting() {
 						onToggle={(rule) => toggle.mutate(rule)}
 					/>
 					<RuleSection
+						className="rounded-b-3xl rounded-t-lg"
 						title="Catch-all and forwarding"
 						description="Evaluated only when no mailbox on the domain matched the recipient."
 						rules={fallbackRules}
@@ -181,8 +183,8 @@ export function DomainRouting() {
 							save.mutate();
 						}}
 					>
-						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-						<div className="space-y-2">
+						<div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+						<div className="grid min-w-0 gap-2">
 							<Label htmlFor="rule-name">Name</Label>
 							<Input
 								id="rule-name"
@@ -192,9 +194,9 @@ export function DomainRouting() {
 							/>
 						</div>
 
-						<div className="space-y-2">
+						<div className="grid min-w-0 gap-2">
 							<Label htmlFor="rule-action">Action</Label>
-							<Select
+							<RoutingRuleSelect
 								id="rule-action"
 								value={form.action}
 								onChange={(e) =>
@@ -206,14 +208,14 @@ export function DomainRouting() {
 										{label}
 									</option>
 								))}
-							</Select>
+							</RoutingRuleSelect>
 						</div>
 						</div>
 
-						<div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-							<div className="space-y-2">
+						<div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+							<div className="grid min-w-0 gap-2">
 								<Label htmlFor="rule-field">Match on</Label>
-								<Select
+								<RoutingRuleSelect
 									id="rule-field"
 									value={form.matchField}
 									onChange={(e) =>
@@ -225,11 +227,11 @@ export function DomainRouting() {
 											{label}
 										</option>
 									))}
-								</Select>
+								</RoutingRuleSelect>
 							</div>
-							<div className="space-y-2">
+							<div className="grid min-w-0 gap-2">
 								<Label htmlFor="rule-operator">Condition</Label>
-								<Select
+								<RoutingRuleSelect
 									id="rule-operator"
 									value={form.matchOperator}
 									onChange={(e) =>
@@ -244,33 +246,51 @@ export function DomainRouting() {
 											{label}
 										</option>
 									))}
-								</Select>
+								</RoutingRuleSelect>
 							</div>
 						</div>
 
-						<div className="space-y-2">
-							<div className="flex items-center gap-2">
-								<Label htmlFor="rule-value">Match value</Label>
-								<Tooltip label="Use * to match every message.">
-									<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
-								</Tooltip>
+						<div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+							<div className="grid min-w-0 gap-2">
+								<div className="flex items-center gap-2">
+									<Label htmlFor="rule-value">Match value</Label>
+									<Tooltip label="Use * to match every message.">
+										<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
+									</Tooltip>
+								</div>
+								<Input
+									id="rule-value"
+									required
+									value={form.matchValue}
+									placeholder="* to match everything"
+									onChange={(e) => setForm({ ...form, matchValue: e.target.value })}
+								/>
 							</div>
-							<Input
-								id="rule-value"
-								required
-								value={form.matchValue}
-								placeholder="* to match everything"
-								onChange={(e) => setForm({ ...form, matchValue: e.target.value })}
-							/>
+							<div className="grid min-w-0 gap-2">
+								<div className="flex items-center gap-2">
+									<Label htmlFor="rule-priority">Priority</Label>
+									<Tooltip label="Higher numbers run first.">
+										<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
+									</Tooltip>
+								</div>
+								<Input
+									id="rule-priority"
+									type="number"
+									min={0}
+									max={1000}
+									value={form.priority}
+									onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
+								/>
+							</div>
 						</div>
 
 						{form.action !== "reject" && (
-							<div className={form.action === "forward" ? "grid grid-cols-1 gap-3 sm:grid-cols-2" : "space-y-2"}>
-							<div className="space-y-2">
+							<div className={form.action === "forward" ? "grid grid-cols-1 items-end gap-4 sm:grid-cols-2" : "grid min-w-0 gap-2"}>
+							<div className="grid min-w-0 gap-2">
 								<Label htmlFor="rule-mailbox">
 									{form.action === "forward" ? "Mailbox for the kept copy" : "Destination mailbox"}
 								</Label>
-								<Select
+								<RoutingRuleSelect
 									id="rule-mailbox"
 									value={form.mailboxId ?? ""}
 									onChange={(e) => setForm({ ...form, mailboxId: e.target.value || null })}
@@ -282,10 +302,10 @@ export function DomainRouting() {
 											{mailbox.disabled ? " (disabled)" : ""}
 										</option>
 									))}
-								</Select>
+								</RoutingRuleSelect>
 							</div>
 							{form.action === "forward" && (
-								<div className="space-y-2">
+								<div className="grid min-w-0 gap-2">
 									<Label htmlFor="rule-forward">Forward to</Label>
 									<Input
 										id="rule-forward"
@@ -317,7 +337,7 @@ export function DomainRouting() {
 						)}
 
 						{form.action === "reject" && (
-							<div className="space-y-2">
+							<div className="grid min-w-0 gap-2">
 								<Label htmlFor="rule-reason">Rejection reason</Label>
 								<Input
 									id="rule-reason"
@@ -328,26 +348,9 @@ export function DomainRouting() {
 							</div>
 						)}
 
-						<div className="space-y-2 sm:w-1/2">
-							<div className="flex items-center gap-2">
-								<Label htmlFor="rule-priority">Priority</Label>
-								<Tooltip label="Higher numbers run first.">
-									<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
-								</Tooltip>
-							</div>
-							<Input
-								id="rule-priority"
-								type="number"
-								min={0}
-								max={1000}
-								value={form.priority}
-								onChange={(e) => setForm({ ...form, priority: Number(e.target.value) })}
-							/>
-						</div>
-
 						{error && <p className="text-sm text-red-600">{error}</p>}
 
-						<div className="flex justify-end gap-2">
+						<div className="flex justify-end gap-2 border-t border-neutral-200 pt-4">
 							<Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
 								Cancel
 							</Button>
@@ -363,6 +366,7 @@ export function DomainRouting() {
 }
 
 function RuleSection({
+	className,
 	title,
 	description,
 	rules,
@@ -372,6 +376,7 @@ function RuleSection({
 	onDelete,
 	onToggle,
 }: {
+	className: string;
 	title: string;
 	description: string;
 	rules: DomainRule[];
@@ -382,16 +387,16 @@ function RuleSection({
 	onToggle: (rule: DomainRule) => void;
 }) {
 	return (
-		<Card>
+		<Card className={`${className} border-0 bg-white px-6`}>
 			<CardHeader>
 				<div className="flex items-center gap-2">
-					<CardTitle>{title}</CardTitle>
+					<CardTitle className="text-xs uppercase">{title}</CardTitle>
 					<Tooltip label={description}>
 						<span className="text-neutral-400"><Info className="h-4 w-4" /></span>
 					</Tooltip>
 				</div>
 			</CardHeader>
-			<CardContent className="space-y-2">
+			<CardContent className="space-y-2 pb-5">
 				{rules.length === 0 ? (
 					<p className="text-sm text-neutral-500">No rules yet.</p>
 				) : (

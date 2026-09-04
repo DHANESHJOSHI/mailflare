@@ -9,18 +9,18 @@ export const settingsNavSections: SettingsNavSection[] = [
 				label: "Account",
 			},
 			{
+				href: "/settings/auto-reply",
+				label: "Auto Reply",
+			},
+			{
 				href: "/settings/rules",
-				label: "Rules",
+				label: "Rules & Routing",
 			},
 		],
 	},
 	{
 		label: "Mailbox",
 		items: [
-			{
-				href: "/settings/auto-reply",
-				label: "Auto-Reply",
-			},
 			{
 				href: "/settings/import",
 				label: "Import",
