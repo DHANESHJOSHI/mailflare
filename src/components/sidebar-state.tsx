@@ -10,14 +10,26 @@ export function SidebarProvider({ children, expandedWidth = 240 }: SidebarProvid
 	const [storageKey, setStorageKey] = useState<string | null>(null);
 
 	useEffect(() => {
+		// The sidebar preference is cosmetic, so every failure here degrades to the default.
+		// Guard the parse: an error response may carry an empty or non-JSON body, and an
+		// unhandled rejection here surfaces as a confusing SyntaxError overlay in dev.
 		void fetch("/api/auth/me", { cache: "no-store" })
-			.then((response) => response.json() as Promise<{ user?: { id?: string } }>)
+			.then(async (response) => {
+				if (!response.ok) return null;
+				return (await response.json().catch(() => null)) as { user?: { id?: string } } | null;
+			})
 			.then((data) => {
-				if (!data.user?.id) return;
-				const key = `mailflare-sidebar-minimal:${data.user.id}`;
+				const userId = data?.user?.id;
+				if (!userId) return;
+				const key = `mailflare-sidebar-minimal:${userId}`;
 				setStorageKey(key);
-				setMinimal(localStorage.getItem(key) === "true");
-			});
+				try {
+					setMinimal(localStorage.getItem(key) === "true");
+				} catch {
+					// Storage can be unavailable in private windows; keep the default.
+				}
+			})
+			.catch(() => undefined);
 	}, []);
 
 	function toggle() {

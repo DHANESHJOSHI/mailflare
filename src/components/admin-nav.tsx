@@ -9,6 +9,8 @@ import {
   Palette,
   BadgeDollarSign,
   Users,
+  Route,
+  Webhook,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { NavItem } from "./components-nav";
@@ -27,6 +29,8 @@ const sections = [
     links: [
       { href: "/mailboxes", label: "Mailboxes", icon: Mail },
       { href: "/domains", label: "Domains", icon: Globe2 },
+      { href: "/routing", label: "Routing", icon: Route },
+      { href: "/webhooks", label: "Webhooks", icon: Webhook },
     ],
   },
   {
@@ -43,7 +47,6 @@ const sections = [
       { href: "/branding", label: "Branding", icon: Palette },
       { href: "/licenses", label: "Licenses", icon: BadgeDollarSign },
       // { href: "/api-keys", label: "API Keys", icon: KeyRound },
-      // { href: "/webhooks", label: "Webhooks", icon: Webhook }
     ],
   },
 ];
@@ -64,7 +67,8 @@ export function AdminNav({ className }: { className?: string }) {
           if (links.length === 0) return null;
 
           return (
-            <section key={section.label}>
+            // The first section has no label, so fall back to its first href for a stable key.
+            <section key={section.label ?? links[0].href}>
               {!minimal && section.label && (
                 <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
                   {section.label}

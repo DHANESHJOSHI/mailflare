@@ -1,4 +1,6 @@
 import { eq } from "drizzle-orm";
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/auth/cookies";
 import { getDb } from "@/db";
 import { apiKeys, users } from "@/db/schema";
 import { verifyApiKey, parseScopes } from "@/lib/api-keys";
@@ -42,4 +44,17 @@ export async function authenticateApiKey(
 
 export function requireScope(scopes: string[], required: string): boolean {
 	return scopes.includes(required) || scopes.includes("*");
+}
+
+/**
+ * Session auth for route handlers. `requireUser` throws a bare Error, which Next turns into
+ * a 500; this returns a proper 401 response instead so unauthenticated callers get the right
+ * status.
+ */
+export async function requireSessionUser(env: CloudflareEnv, request: Request) {
+	const user = await getCurrentUser(env, request);
+	if (!user) {
+		return { user: null, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) } as const;
+	}
+	return { user, error: null } as const;
 }

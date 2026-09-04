@@ -5,3 +5,8 @@ export type TooltipProps = {
 	children: ReactNode;
 	className?: string;
 };
+
+export type TooltipPosition = {
+	left: number;
+	top: number;
+};

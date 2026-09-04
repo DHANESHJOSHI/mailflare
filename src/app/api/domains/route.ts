@@ -20,7 +20,13 @@ export async function GET(request: NextRequest) {
 				const view = await getDomainDns(env, domain);
 				return {
 					id: domain.id,
-					summary: summariseDns(view.routing.records, view.routing.missing, view.sending),
+					summary: summariseDns(
+						view.routing.records,
+						view.routing.missing,
+						view.sending,
+						domain.routingEnabled,
+						domain.sendingEnabled,
+					),
 				};
 			}),
 		);

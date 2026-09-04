@@ -29,7 +29,9 @@ export async function processInboundMessage(
 	payload: InboundQueueMessage,
 ): Promise<void> {
 	const db = getDb(env);
-	const decision = await resolveInboundAddress(db, payload.to);
+	// The sender is passed so that sender-based block rules resolve the same way here as they
+	// do in the Worker email handler.
+	const decision = await resolveInboundAddress(db, payload.to, payload.from);
 
 	if (!decision) {
 		console.warn(`No routing for inbound address: ${payload.to}`);
@@ -41,7 +43,9 @@ export async function processInboundMessage(
 		return;
 	}
 
-	if (decision.action === "forward" && decision.forwardTo) {
+	// A forward decision only reaches the queue when the rule keeps a copy; without a
+	// destination mailbox there is nothing to store.
+	if (decision.action === "forward" && !decision.keepCopy) {
 		console.info(`Forward ${payload.to} -> ${decision.forwardTo}`);
 		return;
 	}

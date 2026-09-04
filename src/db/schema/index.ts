@@ -301,55 +301,96 @@ export const calendarEvents = sqliteTable(
 	(t) => [index("calendar_events_user_starts_idx").on(t.userId, t.startsAt)],
 );
 
-export const routingRules = sqliteTable("routing_rules", {
-	id: text("id").primaryKey(),
-	userId: text("user_id")
-		.notNull()
-		.references(() => users.id, { onDelete: "cascade" }),
-	domainId: text("domain_id")
-		.notNull()
-		.references(() => domains.id, { onDelete: "cascade" }),
-	pattern: text("pattern").notNull(),
-	matchField: text("match_field", { enum: ["email", "content", "title"] }).notNull().default("email"),
-	matchOperator: text("match_operator", { enum: ["contains", "exact"] }).notNull().default("contains"),
-	matchValue: text("match_value").notNull().default(""),
-	mailboxId: text("mailbox_id").references(() => mailboxes.id, { onDelete: "set null" }),
-	folderId: text("folder_id").references(() => folders.id, { onDelete: "set null" }),
-	action: text("action", { enum: ["store", "forward", "reject", "spam", "trash"] }).notNull().default("store"),
-	forwardTo: text("forward_to"),
-	priority: integer("priority").notNull().default(0),
-	createdAt: integer("created_at", { mode: "timestamp" })
-		.notNull()
-		.$defaultFn(() => new Date()),
-});
+export const routingRules = sqliteTable(
+	"routing_rules",
+	{
+		id: text("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => users.id, { onDelete: "cascade" }),
+		domainId: text("domain_id")
+			.notNull()
+			.references(() => domains.id, { onDelete: "cascade" }),
+		// "mailbox" rules run after delivery and file the message into a folder or system status.
+		// "domain" rules run during address resolution and can catch-all, forward, or reject.
+		scope: text("scope", { enum: ["mailbox", "domain"] }).notNull().default("mailbox"),
+		name: text("name"),
+		enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+		pattern: text("pattern").notNull(),
+		matchField: text("match_field", {
+			enum: ["email", "content", "title", "sender", "recipient"],
+		})
+			.notNull()
+			.default("email"),
+		matchOperator: text("match_operator", {
+			enum: ["contains", "exact", "starts_with", "ends_with", "regex"],
+		})
+			.notNull()
+			.default("contains"),
+		matchValue: text("match_value").notNull().default(""),
+		mailboxId: text("mailbox_id").references(() => mailboxes.id, { onDelete: "set null" }),
+		folderId: text("folder_id").references(() => folders.id, { onDelete: "set null" }),
+		action: text("action", { enum: ["store", "forward", "reject", "spam", "trash"] }).notNull().default("store"),
+		forwardTo: text("forward_to"),
+		// Forward actions drop the message by default; keepCopy also delivers it to the mailbox.
+		keepCopy: integer("keep_copy", { mode: "boolean" }).notNull().default(false),
+		rejectReason: text("reject_reason"),
+		priority: integer("priority").notNull().default(0),
+		lastMatchedAt: integer("last_matched_at", { mode: "timestamp" }),
+		matchCount: integer("match_count").notNull().default(0),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.$defaultFn(() => new Date()),
+	},
+	(t) => [
+		index("routing_rules_domain_scope_idx").on(t.domainId, t.scope, t.enabled),
+		index("routing_rules_mailbox_idx").on(t.mailboxId),
+		index("routing_rules_priority_idx").on(t.priority),
+	],
+);
 
 export const webhooks = sqliteTable("webhooks", {
 	id: text("id").primaryKey(),
 	userId: text("user_id")
 		.notNull()
 		.references(() => users.id, { onDelete: "cascade" }),
+	description: text("description"),
 	url: text("url").notNull(),
 	secret: text("secret").notNull(),
 	events: text("events").notNull(),
 	enabled: integer("enabled", { mode: "boolean" }).notNull().default(true),
+	maxAttempts: integer("max_attempts").notNull().default(5),
 	createdAt: integer("created_at", { mode: "timestamp" })
 		.notNull()
 		.$defaultFn(() => new Date()),
 });
 
-export const webhookDeliveries = sqliteTable("webhook_deliveries", {
-	id: text("id").primaryKey(),
-	webhookId: text("webhook_id")
-		.notNull()
-		.references(() => webhooks.id, { onDelete: "cascade" }),
-	eventType: text("event_type").notNull(),
-	payload: text("payload").notNull(),
-	status: text("status").notNull().default("pending"),
-	attempts: integer("attempts").notNull().default(0),
-	createdAt: integer("created_at", { mode: "timestamp" })
-		.notNull()
-		.$defaultFn(() => new Date()),
-});
+export const webhookDeliveries = sqliteTable(
+	"webhook_deliveries",
+	{
+		id: text("id").primaryKey(),
+		webhookId: text("webhook_id")
+			.notNull()
+			.references(() => webhooks.id, { onDelete: "cascade" }),
+		eventType: text("event_type").notNull(),
+		payload: text("payload").notNull(),
+		// pending | delivered | failed | retrying | exhausted
+		status: text("status").notNull().default("pending"),
+		attempts: integer("attempts").notNull().default(0),
+		responseStatus: integer("response_status"),
+		error: text("error"),
+		durationMs: integer("duration_ms"),
+		lastAttemptAt: integer("last_attempt_at", { mode: "timestamp" }),
+		nextRetryAt: integer("next_retry_at", { mode: "timestamp" }),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.$defaultFn(() => new Date()),
+	},
+	(t) => [
+		index("webhook_deliveries_webhook_idx").on(t.webhookId, t.createdAt),
+		index("webhook_deliveries_status_idx").on(t.status),
+	],
+);
 
 export const sessions = sqliteTable("sessions", {
 	id: text("id").primaryKey(),

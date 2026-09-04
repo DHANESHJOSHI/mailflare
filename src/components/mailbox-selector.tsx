@@ -244,7 +244,7 @@ export function MailboxSelector() {
 							Calendar
 						</Link>
 						<Link
-							href="/settings"
+							href="/settings/account"
 							onClick={() => setOpen(false)}
 							className="mt-1 flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-neutral-700 hover:bg-[#f2f6fc]"
 						>

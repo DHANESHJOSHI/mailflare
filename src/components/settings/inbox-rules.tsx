@@ -16,7 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select } from "@/components/ui/select";
+import { RoutingRuleSelect } from "./domain-routing/routing-rule-select";
 import type { InboxRule, InboxRuleInput } from "./inbox-rules-types";
 import {
   createInboxRule,
@@ -129,72 +129,76 @@ export function InboxRules() {
 
   return (
     <section className="space-y-4">
-			<div className="flex flex-row justify-end">
-      <Button
-        type="button"
-        size="sm"
-        onClick={openCreateDialog}
-        disabled={!mailboxId}
-      >
-        <Plus className="h-4 w-4" />
-        New rule
-      </Button>
-			</div>
-      {(rules.data?.rules ?? []).length === 0 && (
-        <p className="rounded-lg border border-dashed border-neutral-200 px-4 py-5 text-sm text-neutral-500">
-          No rules yet
-        </p>
-      )}
-      <div className="divide-y divide-neutral-100">
-        {(rules.data?.rules ?? []).map((rule) => (
-          <div
-            key={rule.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => openEditDialog(rule)}
-            onKeyDown={(event) => onRuleKeyDown(event, rule)}
-            className="group -mx-3 flex cursor-pointer items-center gap-3 rounded-lg px-3 py-3 outline-none transition-colors hover:bg-neutral-50 focus-visible:bg-neutral-50 focus-visible:ring-2 focus-visible:ring-blue-200"
-          >
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
-              {rule.action === "spam" ? (
-                <ShieldAlert className="h-4 w-4" />
-              ) : rule.action === "trash" ? (
-                <Trash2 className="h-4 w-4" />
-              ) : (
-                <Folder className="h-4 w-4" />
-              )}
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm font-medium text-neutral-900">
-                {getRuleFieldLabel(rule.matchField)}{" "}
-                {getRuleOperatorLabel(rule.matchOperator)}{" "}
-                {rule.matchValue || rule.pattern}
-              </p>
-              <p className="truncate text-xs text-neutral-500">
-                {getRuleDestinationLabel(rule)}
-              </p>
-            </div>
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              disabled={remove.isPending}
-              onClick={(event) => {
-                event.stopPropagation();
-                remove.mutate(rule.id);
-              }}
-              onKeyDown={(event) => event.stopPropagation()}
-              className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-              aria-label="Delete rule"
+      <div className="flex flex-row items-center">
+        <header className="flex-1">
+          <h2 className="text-2xl font-semibold text-neutral-900">
+            Mailbox rules
+          </h2>
+          <p className="mt-1 text-sm text-neutral-500">
+            Applied after delivery.
+          </p>
+        </header>
+
+        <Button type="button" onClick={openCreateDialog} disabled={!mailboxId}>
+          <Plus className="h-4 w-4" />
+          New rule
+        </Button>
+      </div>
+      <div className="rounded-3xl bg-white p-6">
+        {(rules.data?.rules ?? []).length === 0 && (
+          <p className="text-sm text-neutral-500">No rules yet</p>
+        )}
+        <div className="space-y-1">
+          {(rules.data?.rules ?? []).map((rule) => (
+            <div
+              key={rule.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => openEditDialog(rule)}
+              onKeyDown={(event) => onRuleKeyDown(event, rule)}
+              className="group flex cursor-pointer items-center gap-3 rounded-xl bg-neutral-50 px-3 py-3 outline-none transition-colors hover:bg-neutral-100 focus-visible:ring-2 focus-visible:ring-blue-200"
             >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        ))}
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-50 text-blue-700">
+                {rule.action === "spam" ? (
+                  <ShieldAlert className="h-4 w-4" />
+                ) : rule.action === "trash" ? (
+                  <Trash2 className="h-4 w-4" />
+                ) : (
+                  <Folder className="h-4 w-4" />
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium text-neutral-900">
+                  {getRuleFieldLabel(rule.matchField)}{" "}
+                  {getRuleOperatorLabel(rule.matchOperator)}{" "}
+                  {rule.matchValue || rule.pattern}
+                </p>
+                <p className="truncate text-xs text-neutral-500">
+                  {getRuleDestinationLabel(rule)}
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                disabled={remove.isPending}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  remove.mutate(rule.id);
+                }}
+                onKeyDown={(event) => event.stopPropagation()}
+                className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+                aria-label="Delete rule"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
+          ))}
+        </div>
       </div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[calc(100vh-4rem)] overflow-y-auto sm:max-w-[560px]">
           <DialogHeader>
             <DialogTitle>
               {editingRule ? "Update rule" : "New rule"}
@@ -204,12 +208,11 @@ export function InboxRules() {
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={onSubmit} className="space-y-4">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="space-y-2">
+            <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-2">
                 <Label htmlFor="matchField">Field</Label>
-                <Select
+                <RoutingRuleSelect
                   id="matchField"
-                  className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
                   value={matchField}
                   onChange={(event) =>
                     setMatchField(
@@ -220,13 +223,12 @@ export function InboxRules() {
                   <option value="email">Email address</option>
                   <option value="content">Content</option>
                   <option value="title">Title</option>
-                </Select>
+                </RoutingRuleSelect>
               </div>
-              <div className="space-y-2">
+              <div className="grid min-w-0 gap-2">
                 <Label htmlFor="matchOperator">Match</Label>
-                <Select
+                <RoutingRuleSelect
                   id="matchOperator"
-                  className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
                   value={matchOperator}
                   onChange={(event) =>
                     setMatchOperator(event.target.value as "contains" | "exact")
@@ -234,56 +236,66 @@ export function InboxRules() {
                 >
                   <option value="contains">Contains</option>
                   <option value="exact">Exact match</option>
-                </Select>
+                </RoutingRuleSelect>
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="matchValue">Value</Label>
-              <Input
-                id="matchValue"
-                value={matchValue}
-                onChange={(event) => setMatchValue(event.target.value)}
-                placeholder={
-                  matchField === "email" ? "sender@example.com" : "Invoice"
-                }
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="destination">Destination</Label>
-              <Select
-                id="destination"
-                className="h-10 w-full rounded-md border border-neutral-200 px-3 text-sm"
-                value={destination}
-                onChange={(event) => setDestination(event.target.value)}
-              >
-                <option value="">Select destination</option>
-                <option value="spam">Spam</option>
-                <option value="trash">Trash</option>
-                {(folders.data?.folders ?? []).map((folder) => (
-                  <option key={folder.id} value={`folder:${folder.id}`}>
-                    {folder.name}
-                  </option>
-                ))}
-              </Select>
+            <div className="grid grid-cols-1 items-end gap-4 sm:grid-cols-2">
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor="matchValue">Value</Label>
+                <Input
+                  id="matchValue"
+                  value={matchValue}
+                  onChange={(event) => setMatchValue(event.target.value)}
+                  placeholder={
+                    matchField === "email" ? "sender@example.com" : "Invoice"
+                  }
+                />
+              </div>
+              <div className="grid min-w-0 gap-2">
+                <Label htmlFor="destination">Destination</Label>
+                <RoutingRuleSelect
+                  id="destination"
+                  value={destination}
+                  onChange={(event) => setDestination(event.target.value)}
+                >
+                  <option value="">Select destination</option>
+                  <option value="spam">Spam</option>
+                  <option value="trash">Trash</option>
+                  {(folders.data?.folders ?? []).map((folder) => (
+                    <option key={folder.id} value={`folder:${folder.id}`}>
+                      {folder.name}
+                    </option>
+                  ))}
+                </RoutingRuleSelect>
+              </div>
             </div>
             {save.isError && (
               <p className="text-sm text-red-600">{save.error.message}</p>
             )}
-            <Button
-              type="submit"
-              disabled={
-                !mailboxId ||
-                !destination ||
-                !matchValue.trim() ||
-                save.isPending
-              }
-            >
-              {save.isPending
-                ? "Saving..."
-                : editingRule
-                  ? "Update rule"
-                  : "Add rule"}
-            </Button>
+            <div className="flex justify-end gap-2 border-t border-neutral-200 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setDialogOpen(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={
+                  !mailboxId ||
+                  !destination ||
+                  !matchValue.trim() ||
+                  save.isPending
+                }
+              >
+                {save.isPending
+                  ? "Saving..."
+                  : editingRule
+                    ? "Save changes"
+                    : "Create rule"}
+              </Button>
+            </div>
           </form>
         </DialogContent>
       </Dialog>
