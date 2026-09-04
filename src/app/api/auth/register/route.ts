@@ -8,7 +8,7 @@ import { hasAdminAccount } from "@/lib/auth/setup";
 import { createSession, SESSION_COOKIE } from "@/lib/auth/session";
 import { newId } from "@/lib/ids";
 import { firstRunRegisterSchema } from "@/lib/validators";
-import { addDomainForUser } from "@/lib/domains/service";
+import { addDomainForUser, listUserDomains, removeDomainForUser } from "@/lib/domains/service";
 import { ensureEmailRoutingRuleToWorker } from "@/lib/cloudflare-api";
 import { ensureMailboxDomainRouting } from "@/lib/mailboxes/domain-addresses";
 import { readJsonBody } from "@/lib/http/request";
@@ -74,6 +74,12 @@ export async function POST(request: Request) {
 		});
 		await ensureMailboxDomainRouting(env, db, { id: mailboxId, domainId: domain.id, localPart: username, useAllDomains: true });
 	} catch (err) {
+		try {
+			const [domain] = await listUserDomains(env, userId);
+			if (domain) await removeDomainForUser(env, userId, domain.id);
+		} catch (cleanupError) {
+			console.warn("Failed to roll back domain after registration failure", cleanupError);
+		}
 		await db.delete(users).where(eq(users.id, userId));
 		const message = err instanceof Error ? err.message : "Domain setup failed";
 		return NextResponse.json({ error: message }, { status: 502 });
