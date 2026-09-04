@@ -1,4 +1,9 @@
-import type { CfDnsRecord, CfEmailRoutingRule, CfResponse } from "@/lib/cloudflare-api.types";
+import type {
+	CfDnsRecord,
+	CfEmailRoutingRule,
+	CfResponse,
+	CfSendingSubdomain,
+} from "@/lib/cloudflare-api.types";
 import {
 	formatCloudflareError,
 	getCloudflareAuth,
@@ -90,7 +95,7 @@ export async function listSendingSubdomains(
 	env: CloudflareEnv,
 	zoneId: string,
 ) {
-	return cfRequest<{ tag: string; name: string; enabled: boolean }[]>(
+	return cfRequest<CfSendingSubdomain[]>(
 		env,
 		`/zones/${zoneId}/email/sending/subdomains`,
 	);

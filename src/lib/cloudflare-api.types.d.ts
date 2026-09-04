@@ -47,3 +47,9 @@ export type CfEmailRoutingRule = {
 	priority?: number;
 	tag?: string;
 };
+
+export type CfSendingSubdomain = {
+	tag: string;
+	name: string;
+	enabled: boolean;
+};

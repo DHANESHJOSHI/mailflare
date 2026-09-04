@@ -14,7 +14,10 @@ export async function GET(request: Request, { params }: Params) {
 
 	try {
 		const dns = await getDomainDns(env, domain);
-		return NextResponse.json({ domain, dns });
+		return NextResponse.json({
+			domain: { ...domain, sendingEnabled: dns.sendingEnabled },
+			dns,
+		});
 	} catch (err) {
 		const message = err instanceof Error ? err.message : "Failed to fetch DNS";
 		return NextResponse.json({ error: message }, { status: 500 });

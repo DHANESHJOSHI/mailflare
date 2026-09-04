@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
 	const includeDns = request.nextUrl.searchParams.get("includeDns") === "true";
 
 	let dns: Record<string, DnsStatusSummary> = {};
+	let domainViews = domains;
 	if (includeDns) {
 		const results = await Promise.allSettled(
 			domains.map(async (domain) => {
@@ -25,19 +26,26 @@ export async function GET(request: NextRequest) {
 						view.routing.missing,
 						view.sending,
 						domain.routingEnabled,
-						domain.sendingEnabled,
+						view.sendingEnabled,
 					),
+					sendingEnabled: view.sendingEnabled,
 				};
 			}),
 		);
+		const sendingEnabledByDomain = new Map<string, boolean>();
 		for (const r of results) {
 			if (r.status === "fulfilled") {
 				dns[r.value.id] = r.value.summary;
+				sendingEnabledByDomain.set(r.value.id, r.value.sendingEnabled);
 			}
 		}
+		domainViews = domains.map((domain) => ({
+			...domain,
+			sendingEnabled: sendingEnabledByDomain.get(domain.id) ?? domain.sendingEnabled,
+		}));
 	}
 
-	return NextResponse.json({ domains, dns: includeDns ? dns : undefined });
+	return NextResponse.json({ domains: domainViews, dns: includeDns ? dns : undefined });
 }
 
 export async function POST(request: Request) {

@@ -9,7 +9,7 @@ export default function DomainDnsDetails({ domain, dns }: DomainDnsDetailsProps)
 			<CardHeader className="py-0">
 				<CardTitle>DNS — {domain.hostname}</CardTitle>
 			</CardHeader>
-			<CardContent className="grid gap-6 pt-5 md:grid-cols-2">
+			<CardContent className="gap-6 pt-5">
 				<section className="space-y-3">
 					<h2 className="text-sm font-medium text-neutral-900">Email Routing</h2>
 					<ul className="space-y-2">
@@ -44,7 +44,7 @@ export default function DomainDnsDetails({ domain, dns }: DomainDnsDetailsProps)
 					</ul>
 				</section>
 
-				<section className="space-y-3">
+				<section className="space-y-3 mt-8">
 					<h2 className="text-sm font-medium text-neutral-900">Email Sending</h2>
 					<ul className="space-y-2">
 						{dns.sending.map((record, index) => (

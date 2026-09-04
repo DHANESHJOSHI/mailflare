@@ -9,14 +9,17 @@ import {
 	getEmailRoutingSettings,
 	getSendingSubdomainDns,
 	deleteSendingSubdomain,
+	listSendingSubdomains,
 	type CfDnsRecord,
 } from "@/lib/cloudflare-api";
 import { deleteEmailRoutingRulesForDomain } from "@/lib/domains/cloudflare-cleanup";
 import { provisionDomainOnCloudflare } from "@/lib/domains/provision";
+import { findSendingSubdomain } from "@/lib/domains/sending-status";
 
 export type DomainDnsView = {
 	routing: { records: CfDnsRecord[]; missing: CfDnsRecord[]; status?: string };
 	sending: CfDnsRecord[];
+	sendingEnabled: boolean;
 };
 
 export async function listUserDomains(env: CloudflareEnv, userId: string) {
@@ -78,11 +81,15 @@ export async function getDomainDns(
 	env: CloudflareEnv,
 	domain: typeof domains.$inferSelect,
 ): Promise<DomainDnsView> {
-	const routingDns = await getEmailRoutingDns(env, domain.zoneId);
-	const routingSettings = await getEmailRoutingSettings(env, domain.zoneId);
+	const [routingDns, routingSettings, sendingSubdomains] = await Promise.all([
+		getEmailRoutingDns(env, domain.zoneId),
+		getEmailRoutingSettings(env, domain.zoneId),
+		listSendingSubdomains(env, domain.zoneId),
+	]);
+	const sendingSubdomain = findSendingSubdomain(domain.hostname, sendingSubdomains);
 	let sending: CfDnsRecord[] = [];
-	if (domain.sendingSubdomainTag) {
-		sending = await getSendingSubdomainDns(env, domain.zoneId, domain.sendingSubdomainTag);
+	if (sendingSubdomain?.tag) {
+		sending = await getSendingSubdomainDns(env, domain.zoneId, sendingSubdomain.tag);
 	}
 	return {
 		routing: {
@@ -91,6 +98,7 @@ export async function getDomainDns(
 			status: routingSettings.status,
 		},
 		sending,
+		sendingEnabled: sendingSubdomain?.enabled ?? false,
 	};
 }
 

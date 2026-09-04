@@ -26,6 +26,7 @@ export type DomainDnsView = {
 		status?: string;
 	};
 	sending: DnsRecord[];
+	sendingEnabled: boolean;
 };
 
 export type DomainDnsDetailsProps = {

@@ -16,7 +16,7 @@ export function summariseDns(
 	routingMissing: CfDnsRecord[],
 	sendingRecords: CfDnsRecord[],
 	routingEnabled = false,
-	sendingEnabled = false,
+	sendingEnabled?: boolean,
 ): DnsStatusSummary {
 	const recordTypes = (
 		type: "routing-records" | "routing-missing" | "sending",
@@ -36,7 +36,7 @@ export function summariseDns(
 			missing: recordTypes("routing-missing"),
 		},
 		sending: {
-			configured: sendingRecords.length > 0 || sendingEnabled,
+			configured: sendingEnabled ?? sendingRecords.length > 0,
 			records: recordTypes("sending"),
 		},
 	};
