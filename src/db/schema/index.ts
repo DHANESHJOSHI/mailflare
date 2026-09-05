@@ -441,7 +441,7 @@ export const backupSettings = sqliteTable("backup_settings", {
 
 export const appSettings = sqliteTable("app_settings", {
 	id: text("id").primaryKey(),
-	appName: text("app_name").notNull().default("Mailflare"),
+	appName: text("app_name").notNull().default("TechWithJoshi Mail"),
 	iconKey: text("icon_key"),
 	updatedAt: integer("updated_at", { mode: "timestamp" })
 		.notNull()

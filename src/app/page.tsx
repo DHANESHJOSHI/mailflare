@@ -220,6 +220,9 @@ export default function HomePage() {
 					</div>
 				</section> */}
       </main>
+      <footer className="mx-auto max-w-7xl py-8 px-4 sm:px-6 lg:px-8 border-t border-neutral-200/80 text-center text-xs text-neutral-500">
+        © {new Date().getFullYear()} TechWithJoshi Private Limited. All rights reserved.
+      </footer>
     </div>
   );
 }

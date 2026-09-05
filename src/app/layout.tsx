@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-	title: "Mailflare",
-	description: "Multi-tenant email on Cloudflare",
+	title: "TechWithJoshi Mail",
+	description: "Secure, private email platform by TechWithJoshi Private Limited",
 	icons: { icon: "/api/branding/icon" },
 };
 

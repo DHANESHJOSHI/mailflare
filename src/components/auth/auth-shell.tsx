@@ -85,6 +85,9 @@ export function AuthShell({
           )}
         </section>
       </main>
+      <footer className="mt-6 text-center text-xs text-neutral-400 lg:fixed lg:bottom-4 lg:left-0 lg:right-0">
+        © {new Date().getFullYear()} TechWithJoshi Private Limited. All rights reserved.
+      </footer>
     </div>
   );
 }

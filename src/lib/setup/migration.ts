@@ -82,9 +82,9 @@ INSERT OR IGNORE INTO backup_settings (id, enabled, schedule_type, retention_ena
 CREATE TABLE IF NOT EXISTS backups (id text PRIMARY KEY NOT NULL, status text DEFAULT 'queued' NOT NULL, trigger text NOT NULL, r2_key text, filename text, size integer, error text, created_by_user_id text REFERENCES users(id) ON DELETE set null, created_at integer NOT NULL, started_at integer, completed_at integer);
 CREATE INDEX IF NOT EXISTS backups_created_idx ON backups(created_at);
 CREATE INDEX IF NOT EXISTS backups_status_idx ON backups(status);
-CREATE TABLE IF NOT EXISTS app_settings (id text PRIMARY KEY NOT NULL, app_name text DEFAULT 'Mailflare' NOT NULL, icon_key text, updated_at integer NOT NULL);
-INSERT OR IGNORE INTO app_settings (id, app_name, updated_at) VALUES ('default', 'Mailflare', unixepoch());
-CREATE TABLE IF NOT EXISTS license_settings (id text PRIMARY KEY NOT NULL, instance_id text NOT NULL, instance_url text, license_key_hash text, plan text DEFAULT 'community' NOT NULL, state text DEFAULT 'inactive' NOT NULL, features text DEFAULT '[]' NOT NULL, activated_at integer, validated_at integer, updated_at integer NOT NULL);
+CREATE TABLE IF NOT EXISTS app_settings (id text PRIMARY KEY NOT NULL, app_name text DEFAULT 'TechWithJoshi Mail' NOT NULL, icon_key text, updated_at integer NOT NULL);
+INSERT OR IGNORE INTO app_settings (id, app_name, updated_at) VALUES ('default', 'TechWithJoshi Mail', unixepoch());
+CREATE TABLE IF NOT EXISTS license_settings (id text PRIMARY KEY NOT NULL, instance_id text NOT NULL, instance_url text, license_key_hash text, plan text DEFAULT 'team' NOT NULL, state text DEFAULT 'active' NOT NULL, features text DEFAULT '["branding","accounts","forwarding","workflows","backups"]' NOT NULL, activated_at integer, validated_at integer, updated_at integer NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS license_settings_instance_id_unique ON license_settings(instance_id);
 CREATE TABLE IF NOT EXISTS storage_objects (key text NOT NULL, chunk_index integer NOT NULL, total_chunks integer NOT NULL, data blob NOT NULL, content_type text, custom_metadata text, size integer NOT NULL, created_at integer NOT NULL, PRIMARY KEY (key, chunk_index));
 CREATE INDEX IF NOT EXISTS storage_objects_key_idx ON storage_objects(key);
