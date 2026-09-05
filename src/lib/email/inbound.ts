@@ -11,6 +11,7 @@ import { sendMailboxAutoReply } from "@/lib/email/auto-reply";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
 import { listMessageAttachments, storeMessageAttachments } from "@/lib/email/attachments";
 import { getUnsubscribeUrlFromRawR2Key } from "@/lib/email/unsubscribe";
+import { getStorage } from "@/lib/storage";
 import type { SessionUser } from "@/lib/auth/types";
 import {
 	getMailboxNotificationUserIds,
@@ -52,9 +53,9 @@ export async function processInboundMessage(
 
 	if (!decision.mailbox) return;
 
-	const raw = await env.BUCKET.get(payload.rawR2Key);
+	const raw = await getStorage(env).get(payload.rawR2Key);
 	if (!raw) {
-		console.error(`Missing R2 object: ${payload.rawR2Key}`);
+		console.error(`Missing storage object: ${payload.rawR2Key}`);
 		return;
 	}
 
@@ -147,7 +148,7 @@ export async function storeRawToR2(
 ): Promise<string> {
 	const key = `inbound/${Date.now()}-${newId()}.eml`;
 	const buffer = await new Response(raw).arrayBuffer();
-	await env.BUCKET.put(key, buffer, {
+	await getStorage(env).put(key, buffer, {
 		httpMetadata: { contentType: "message/rfc822" },
 		customMetadata: { from, to },
 	});

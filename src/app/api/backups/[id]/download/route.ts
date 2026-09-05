@@ -5,6 +5,7 @@ import { backups } from "@/db/schema";
 import { assertAdmin } from "@/lib/auth/admin";
 import { requireUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
+import { getStorage } from "@/lib/storage";
 
 export async function GET(
 	request: Request,
@@ -17,7 +18,7 @@ export async function GET(
 		const { id } = await params;
 		const [backup] = await getDb(env).select().from(backups).where(eq(backups.id, id)).limit(1);
 		if (!backup?.r2Key) return NextResponse.json({ error: "Backup file not found" }, { status: 404 });
-		const object = await env.BUCKET.get(backup.r2Key);
+		const object = await getStorage(env).get(backup.r2Key);
 		if (!object) return NextResponse.json({ error: "Backup file not found" }, { status: 404 });
 		return new Response(object.body, {
 			headers: {

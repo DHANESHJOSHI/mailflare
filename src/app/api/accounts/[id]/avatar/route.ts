@@ -10,13 +10,14 @@ import {
 } from "@/app/api/profile/avatar/utils";
 import type { AccountRouteParams } from "../types";
 import { getManagedAccount } from "./utils";
+import { getStorage } from "@/lib/storage";
 
 export async function GET(request: Request, { params }: AccountRouteParams) {
 	const { id } = await params;
 	const { access, account } = await getManagedAccount(request, id);
 	if (access.error) return access.error;
 	if (!account?.avatarKey) return new Response("Not found", { status: 404 });
-	const object = await access.env.BUCKET.get(account.avatarKey);
+	const object = await getStorage(access.env).get(account.avatarKey);
 	if (!object) return new Response("Not found", { status: 404 });
 	return new Response(object.body, {
 		headers: {
@@ -38,7 +39,7 @@ export async function POST(request: Request, { params }: AccountRouteParams) {
 	if (!ALLOWED_AVATAR_TYPES.includes(file.type)) return NextResponse.json({ error: "Use a JPEG, PNG, WebP, or GIF image" }, { status: 400 });
 	if (file.size > MAX_AVATAR_SIZE) return NextResponse.json({ error: "Image must be 2 MB or smaller" }, { status: 413 });
 	const key = avatarKeyFor(account.id);
-	await access.env.BUCKET.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
+	await getStorage(access.env).put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
 	await getDb(access.env).update(users).set({ avatarKey: key }).where(eq(users.id, account.id));
 	return NextResponse.json({ ok: true });
 }

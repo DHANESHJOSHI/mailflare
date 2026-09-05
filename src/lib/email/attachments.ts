@@ -9,6 +9,7 @@ import type {
 	AttachmentMetadata,
 	StoredAttachment,
 } from "./attachment-types";
+import { getStorage } from "@/lib/storage";
 
 export const MAX_ATTACHMENT_SIZE = 10 * 1024 * 1024;
 export const MAX_TOTAL_ATTACHMENT_SIZE = 20 * 1024 * 1024;
@@ -76,7 +77,7 @@ export async function storeMessageAttachments(
 			const r2Key = `attachments/${messageId}/${id}/${filename}`;
 			const disposition = attachment.disposition ?? "attachment";
 
-			await env.BUCKET.put(r2Key, attachment.content, {
+			await getStorage(env).put(r2Key, attachment.content, {
 				httpMetadata: { contentType: attachment.type },
 				customMetadata: { filename, messageId },
 			});
@@ -102,7 +103,7 @@ export async function storeMessageAttachments(
 			});
 		}
 	} catch (error) {
-		await Promise.all(stored.map((attachment) => env.BUCKET.delete(attachment.r2Key)));
+		await Promise.all(stored.map((attachment) => getStorage(env).delete(attachment.r2Key)));
 		throw error;
 	}
 
@@ -159,7 +160,7 @@ export async function getAttachmentForUser(
 		.limit(1);
 	if (!attachment) return null;
 
-	const object = await env.BUCKET.get(attachment.r2Key);
+	const object = await getStorage(env).get(attachment.r2Key);
 	if (!object) return null;
 	return { attachment, object };
 }

@@ -1,4 +1,5 @@
 import type { UnsubscribeUrl } from "@/lib/email/unsubscribe-types";
+import { getStorage } from "@/lib/storage";
 
 const maxHeaderBytes = 64 * 1024;
 const allowedUnsubscribeProtocols = new Set(["http:", "https:", "mailto:"]);
@@ -64,7 +65,7 @@ export function extractUnsubscribeUrlFromRaw(raw: ArrayBuffer): UnsubscribeUrl {
 
 export async function getUnsubscribeUrlFromRawR2Key(env: CloudflareEnv, rawR2Key: string | null): Promise<UnsubscribeUrl> {
 	if (!rawR2Key) return null;
-	const raw = await env.BUCKET.get(rawR2Key, { range: { offset: 0, length: maxHeaderBytes } });
+	const raw = await getStorage(env).get(rawR2Key, { range: { offset: 0, length: maxHeaderBytes } });
 	if (!raw) return null;
 	return extractUnsubscribeUrlFromRaw(await raw.arrayBuffer());
 }

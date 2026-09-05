@@ -4,6 +4,7 @@ import { appSettings } from "@/db/schema";
 import { APP_SETTINGS_ID } from "@/lib/branding/service";
 import { getEnvAsync } from "@/lib/cloudflare";
 import { getLicenseEntitlements } from "@/lib/licenses/service";
+import { getStorage } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -27,7 +28,7 @@ export async function GET(request: Request) {
 			.where(eq(appSettings.id, APP_SETTINGS_ID))
 			.limit(1);
 		if (settings?.iconKey) {
-			const object = await env.BUCKET.get(settings.iconKey);
+			const object = await getStorage(env).get(settings.iconKey);
 			if (object) {
 				return new Response(object.body, {
 					headers: {

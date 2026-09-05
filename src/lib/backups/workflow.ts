@@ -9,6 +9,7 @@ import {
 	BACKUP_PREFIX,
 	createBackupFilename,
 } from "./utils";
+import { getStorage } from "@/lib/storage";
 
 export class DatabaseBackupWorkflow extends WorkflowEntrypoint<CloudflareEnv, BackupWorkflowParams> {
 	async run(event: Readonly<WorkflowEvent<BackupWorkflowParams>>, step: WorkflowStep) {
@@ -35,7 +36,7 @@ export class DatabaseBackupWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ba
 				const content = await exportDatabaseRecords(this.env.DB);
 				const filename = createBackupFilename(new Date());
 				const r2Key = `${BACKUP_PREFIX}/${backupId}/${filename}`;
-				const object = await this.env.BUCKET.put(r2Key, content, {
+				const object = await getStorage(this.env).put(r2Key, content, {
 					httpMetadata: { contentType: "application/json" },
 					customMetadata: { backupId },
 				});
@@ -83,7 +84,7 @@ export class DatabaseBackupWorkflow extends WorkflowEntrypoint<CloudflareEnv, Ba
 				),
 			);
 		for (const backup of expired) {
-			if (backup.r2Key) await this.env.BUCKET.delete(backup.r2Key);
+			if (backup.r2Key) await getStorage(this.env).delete(backup.r2Key);
 			await db.delete(backups).where(eq(backups.id, backup.id));
 		}
 		return { deleted: expired.length };

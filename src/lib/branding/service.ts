@@ -3,6 +3,7 @@ import { getDb } from "@/db";
 import { appSettings } from "@/db/schema";
 import type { Branding } from "./types";
 import { getLicenseEntitlements } from "@/lib/licenses/service";
+import { getStorage } from "@/lib/storage";
 
 export const APP_SETTINGS_ID = "default";
 export const DEFAULT_APP_NAME = "Mailflare";
@@ -40,7 +41,7 @@ export async function updateBranding(
 	let iconKey: string | undefined;
 	if (input.icon) {
 		iconKey = BRANDING_ICON_KEY;
-		await env.BUCKET.put(iconKey, await input.icon.arrayBuffer(), {
+		await getStorage(env).put(iconKey, await input.icon.arrayBuffer(), {
 			httpMetadata: { contentType: input.icon.type },
 		});
 	}

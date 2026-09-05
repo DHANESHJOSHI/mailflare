@@ -1,4 +1,4 @@
-import { sqliteTable, text, integer, index, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { sqliteTable, text, integer, index, uniqueIndex, blob, primaryKey } from "drizzle-orm/sqlite-core";
 import type { AnySQLiteColumn } from "drizzle-orm/sqlite-core";
 
 export const users = sqliteTable("users", {
@@ -490,6 +490,26 @@ export const backups = sqliteTable(
 	],
 );
 
+export const storageObjects = sqliteTable(
+	"storage_objects",
+	{
+		key: text("key").notNull(),
+		chunkIndex: integer("chunk_index").notNull(),
+		totalChunks: integer("total_chunks").notNull(),
+		data: blob("data", { mode: "buffer" }).notNull(),
+		contentType: text("content_type"),
+		customMetadata: text("custom_metadata"),
+		size: integer("size").notNull(),
+		createdAt: integer("created_at", { mode: "timestamp" })
+			.notNull()
+			.$defaultFn(() => new Date()),
+	},
+	(t) => [
+		primaryKey({ columns: [t.key, t.chunkIndex] }),
+		index("storage_objects_key_idx").on(t.key),
+	],
+);
+
 export const schema = {
 	users,
 	domains,
@@ -514,4 +534,5 @@ export const schema = {
 	backups,
 	appSettings,
 	licenseSettings,
+	storageObjects,
 };

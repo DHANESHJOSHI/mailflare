@@ -4,6 +4,7 @@ import { getDb } from "@/db";
 import { users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
+import { getStorage } from "@/lib/storage";
 import {
 	ALLOWED_AVATAR_TYPES,
 	MAX_AVATAR_SIZE,
@@ -17,7 +18,7 @@ export async function GET(request: Request) {
 	if (!user) return new Response("Unauthorized", { status: 401 });
 	if (!user.avatarKey) return new Response("Not found", { status: 404 });
 
-	const object = await env.BUCKET.get(user.avatarKey);
+	const object = await getStorage(env).get(user.avatarKey);
 	if (!object) return new Response("Not found", { status: 404 });
 
 	const headers = new Headers();
@@ -54,7 +55,7 @@ export async function POST(request: Request) {
 	}
 
 	const key = avatarKeyFor(user.id);
-	await env.BUCKET.put(key, await file.arrayBuffer(), {
+	await getStorage(env).put(key, await file.arrayBuffer(), {
 		httpMetadata: { contentType: file.type },
 	});
 	await getDb(env).update(users).set({ avatarKey: key }).where(eq(users.id, user.id));
@@ -68,7 +69,7 @@ export async function DELETE(request: Request) {
 	if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
 	if (user.avatarKey) {
-		await env.BUCKET.delete(user.avatarKey);
+		await getStorage(env).delete(user.avatarKey);
 		await getDb(env).update(users).set({ avatarKey: null }).where(eq(users.id, user.id));
 	}
 	return NextResponse.json({ ok: true });

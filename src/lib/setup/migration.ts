@@ -24,6 +24,7 @@ const MIGRATION_NAMES = [
 	"0022_add_mailbox_auto_reply.sql",
 	"0023_add_mailbox_aliases.sql",
 	"0024_add_advanced_routing_and_webhook_retries.sql",
+	"0025_add_storage_objects.sql",
 ];
 
 const INITIAL_SCHEMA_SQL = `
@@ -85,6 +86,8 @@ CREATE TABLE IF NOT EXISTS app_settings (id text PRIMARY KEY NOT NULL, app_name 
 INSERT OR IGNORE INTO app_settings (id, app_name, updated_at) VALUES ('default', 'Mailflare', unixepoch());
 CREATE TABLE IF NOT EXISTS license_settings (id text PRIMARY KEY NOT NULL, instance_id text NOT NULL, instance_url text, license_key_hash text, plan text DEFAULT 'community' NOT NULL, state text DEFAULT 'inactive' NOT NULL, features text DEFAULT '[]' NOT NULL, activated_at integer, validated_at integer, updated_at integer NOT NULL);
 CREATE UNIQUE INDEX IF NOT EXISTS license_settings_instance_id_unique ON license_settings(instance_id);
+CREATE TABLE IF NOT EXISTS storage_objects (key text NOT NULL, chunk_index integer NOT NULL, total_chunks integer NOT NULL, data blob NOT NULL, content_type text, custom_metadata text, size integer NOT NULL, created_at integer NOT NULL, PRIMARY KEY (key, chunk_index));
+CREATE INDEX IF NOT EXISTS storage_objects_key_idx ON storage_objects(key);
 CREATE TABLE IF NOT EXISTS d1_migrations (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT UNIQUE, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL);
 `;
 

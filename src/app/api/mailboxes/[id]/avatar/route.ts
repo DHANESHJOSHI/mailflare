@@ -5,6 +5,7 @@ import { mailboxes } from "@/db/schema";
 import { requireUser } from "@/lib/auth/cookies";
 import { getEnv } from "@/lib/cloudflare";
 import { getMailboxAccessLevel } from "@/lib/mailboxes/access";
+import { getStorage } from "@/lib/storage";
 import {
 	ALLOWED_AVATAR_TYPES,
 	MAX_AVATAR_SIZE,
@@ -28,7 +29,7 @@ export async function GET(request: Request, { params }: MailboxAvatarRouteParams
 		.limit(1);
 	if (!mailbox?.avatarKey) return new Response("Not found", { status: 404 });
 
-	const object = await env.BUCKET.get(mailbox.avatarKey);
+	const object = await getStorage(env).get(mailbox.avatarKey);
 	if (!object) return new Response("Not found", { status: 404 });
 
 	const headers = new Headers();
@@ -67,7 +68,7 @@ export async function POST(request: Request, { params }: MailboxAvatarRouteParam
 	}
 
 	const key = mailboxAvatarKeyFor(id);
-	await env.BUCKET.put(key, await file.arrayBuffer(), {
+	await getStorage(env).put(key, await file.arrayBuffer(), {
 		httpMetadata: { contentType: file.type },
 	});
 	await db.update(mailboxes).set({ avatarKey: key }).where(eq(mailboxes.id, id));
