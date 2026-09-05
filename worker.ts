@@ -93,4 +93,14 @@ export default {
 			}
 		}
 	},
+
+	async scheduled(controller: ScheduledController, env: CloudflareEnv, ctx: ExecutionContext): Promise<void> {
+		if (env.DATABASE_BACKUP_WORKFLOW) {
+			try {
+				await env.DATABASE_BACKUP_WORKFLOW.create();
+			} catch (err) {
+				console.error("Scheduled backup workflow failed to start", err);
+			}
+		}
+	},
 } satisfies ExportedHandler<CloudflareEnv>;
