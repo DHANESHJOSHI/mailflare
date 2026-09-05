@@ -95,10 +95,15 @@ export async function listSendingSubdomains(
 	env: CloudflareEnv,
 	zoneId: string,
 ) {
-	return cfRequest<CfSendingSubdomain[]>(
-		env,
-		`/zones/${zoneId}/email/sending/subdomains`,
-	);
+	try {
+		return await cfRequest<CfSendingSubdomain[]>(
+			env,
+			`/zones/${zoneId}/email/sending/subdomains`,
+		);
+	} catch (err) {
+		console.warn("Cloudflare email sending subdomains unavailable on this account:", err);
+		return [];
+	}
 }
 
 export async function createSendingSubdomain(
@@ -106,14 +111,19 @@ export async function createSendingSubdomain(
 	zoneId: string,
 	hostname: string,
 ) {
-	return cfRequest<{ tag: string; name: string; enabled: boolean }>(
-		env,
-		`/zones/${zoneId}/email/sending/subdomains`,
-		{
-			method: "POST",
-			body: JSON.stringify({ name: hostname }),
-		},
-	);
+	try {
+		return await cfRequest<{ tag: string; name: string; enabled: boolean }>(
+			env,
+			`/zones/${zoneId}/email/sending/subdomains`,
+			{
+				method: "POST",
+				body: JSON.stringify({ name: hostname }),
+			},
+		);
+	} catch (err) {
+		console.warn("Cloudflare create sending subdomain error:", err);
+		return { tag: "", name: hostname, enabled: false };
+	}
 }
 
 export async function deleteSendingSubdomain(
@@ -133,10 +143,15 @@ export async function getSendingSubdomainDns(
 	zoneId: string,
 	subdomainTag: string,
 ): Promise<CfDnsRecord[]> {
-	return cfRequest<CfDnsRecord[]>(
-		env,
-		`/zones/${zoneId}/email/sending/subdomains/${subdomainTag}/dns`,
-	);
+	try {
+		return await cfRequest<CfDnsRecord[]>(
+			env,
+			`/zones/${zoneId}/email/sending/subdomains/${subdomainTag}/dns`,
+		);
+	} catch (err) {
+		console.warn("Cloudflare getSendingSubdomainDns error:", err);
+		return [];
+	}
 }
 
 export async function getEmailRoutingSettings(
